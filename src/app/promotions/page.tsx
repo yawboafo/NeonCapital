@@ -41,7 +41,7 @@ const promotions = [
     title: "3% Cashback Everywhere",
     subtitle: "Plus $200 sign-up bonus",
     description: "Earn 3% unlimited cashback on all purchases with our premium credit card. Plus, get a $200 bonus after spending $1,000 in the first 3 months.",
-    image: "https://images.unsplash.com/photo-1556742400-b5b7851c0b6e?auto=format&fit=crop&w=800&q=80",
+    image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=800&q=80",
     requirements: [
       "Spend $1,000 in first 3 months",
       "No annual fee for the first year",
