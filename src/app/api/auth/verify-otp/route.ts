@@ -19,8 +19,18 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db('neoncapital');
 
-    // Find OTP record
-    const otpRecord = await db.collection('otps').findOne({ phone });
+    // Format phone number to international format if needed
+    let formattedPhone = phone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '+233' + formattedPhone.substring(1);
+    } else if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+233' + formattedPhone;
+    }
+
+    // Find OTP record (check both formats)
+    const otpRecord = await db.collection('otps').findOne({ 
+      $or: [{ phone }, { phone: formattedPhone }]
+    });
 
     if (!otpRecord) {
       return NextResponse.json(
@@ -55,12 +65,14 @@ export async function POST(request: NextRequest) {
 
     // Mark OTP as verified
     await db.collection('otps').updateOne(
-      { phone },
+      { $or: [{ phone }, { phone: formattedPhone }] },
       { $set: { verified: true } }
     );
 
-    // Get user data
-    const user = await db.collection('users').findOne({ phone });
+    // Get user data (check both formats)
+    const user = await db.collection('users').findOne({ 
+      $or: [{ phone }, { phone: formattedPhone }]
+    });
 
     if (!user) {
       return NextResponse.json(

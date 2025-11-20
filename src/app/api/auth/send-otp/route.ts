@@ -27,8 +27,18 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db('neoncapital');
 
-    // Find user by phone
-    const user = await db.collection('users').findOne({ phone });
+    // Format phone number to international format if needed
+    let formattedPhone = phone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '+233' + formattedPhone.substring(1);
+    } else if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+233' + formattedPhone;
+    }
+
+    // Find user by phone (check both formats)
+    const user = await db.collection('users').findOne({ 
+      $or: [{ phone }, { phone: formattedPhone }]
+    });
 
     if (!user) {
       return NextResponse.json(
@@ -51,21 +61,22 @@ export async function POST(request: NextRequest) {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-    // Store OTP in database
+    // Store OTP in database with formatted phone
     await db.collection('otps').updateOne(
-      { phone },
+      { phone: formattedPhone },
       {
         $set: {
           otp,
           expiresAt,
           verified: false,
           createdAt: new Date(),
+          originalPhone: phone,
         },
       },
       { upsert: true }
     );
 
-    // Send SMS via Infobip
+    // Send SMS via Infobip with formatted international number
     try {
       const infobipResponse = await fetch(`${INFOBIP_BASE_URL}/sms/2/text/advanced`, {
         method: 'POST',
@@ -77,7 +88,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           messages: [
             {
-              destinations: [{ to: phone }],
+              destinations: [{ to: formattedPhone }],
               from: 'NeonCapital',
               text: `Your Neon Capital verification code is: ${otp}. This code will expire in 10 minutes.`,
             },
