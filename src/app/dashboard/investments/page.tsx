@@ -1,16 +1,96 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function Investments() {
   const router = useRouter();
   const [activeNav, setActiveNav] = useState("investments");
+  const [user, setUser] = useState<any>(null);
+  const [investments, setInvestments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    fetchInvestments(parsedUser._id);
+  }, []);
+
+  const fetchInvestments = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/investments?userId=${userId}`);
+      const data = await response.json();
+      if (data.success) {
+        setInvestments(data.investments || []);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching investments:', error);
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     router.push("/");
   };
+
+  const formatCurrency = (amount: number, currency: string = 'GBP') => {
+    const symbol = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€';
+    const numAmount = Number(amount) || 0;
+    return `${symbol}${numAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const calculateStats = () => {
+    const totalInvested = investments.reduce((sum, inv) => sum + (Number(inv.purchasePrice) * Number(inv.quantity)), 0);
+    const currentValue = investments.reduce((sum, inv) => sum + (Number(inv.currentPrice) * Number(inv.quantity)), 0);
+    const totalReturn = currentValue - totalInvested;
+    const returnRate = totalInvested > 0 ? ((totalReturn / totalInvested) * 100) : 0;
+
+    return {
+      totalInvested,
+      totalCount: investments.length,
+      returnRate,
+      currentValue
+    };
+  };
+
+  const calculateInvestmentReturn = (investment: any) => {
+    const invested = Number(investment.purchasePrice) * Number(investment.quantity);
+    const current = Number(investment.currentPrice) * Number(investment.quantity);
+    const returnAmount = current - invested;
+    const returnPercent = invested > 0 ? ((returnAmount / invested) * 100) : 0;
+    return { returnAmount, returnPercent };
+  };
+
+  const getInvestmentIcon = (type: string) => {
+    const icons: any = {
+      'Stocks': '📈',
+      'Bonds': '📊',
+      'Crypto': '₿',
+      'Real Estate': '🏠',
+      'Mutual Funds': '💼',
+      'ETF': '📉'
+    };
+    return icons[type] || '💰';
+  };
+
+  const stats = calculateStats();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading investments...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -85,7 +165,7 @@ export default function Investments() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total invested</p>
-                <p className="text-2xl font-bold text-gray-900">£10,000.00</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalInvested)}</p>
               </div>
             </div>
           </div>
@@ -99,7 +179,7 @@ export default function Investments() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">No. of investments</p>
-                <p className="text-2xl font-bold text-gray-900">1,600</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalCount}</p>
               </div>
             </div>
           </div>
@@ -113,7 +193,9 @@ export default function Investments() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Rate of return</p>
-                <p className="text-2xl font-bold text-gray-900">+4.75%</p>
+                <p className={`text-2xl font-bold ${stats.returnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {stats.returnRate >= 0 ? '+' : ''}{stats.returnRate.toFixed(2)}%
+                </p>
               </div>
             </div>
           </div>
@@ -162,85 +244,93 @@ export default function Investments() {
           </div>
         </div>
 
-        {/* My Investment & Trending Stock */}
+        {/* My Investment & Portfolio Summary */}
         <div className="grid grid-cols-2 gap-6">
           {/* My Investment */}
           <div className="bg-white rounded-2xl p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-6">My investment</h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-xl">🍎</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Apple Market</p>
-                    <p className="text-sm text-gray-500">Ecommerce, Marketplace</p>
-                  </div>
+              {investments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No investments yet</p>
+                  <p className="text-sm mt-2">Start investing to build your portfolio</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900">£200.00</p>
-                  <p className="text-sm text-gray-500">Investment value</p>
-                  <p className="text-sm text-red-600 font-semibold">-23%</p>
-                  <p className="text-xs text-gray-500">Return value</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                    <span className="text-xl">🌿</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Greenery</p>
-                    <p className="text-sm text-gray-500">Ecommerce, Marketplace</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900">£200.00</p>
-                  <p className="text-sm text-gray-500">Investment value</p>
-                  <p className="text-sm text-gray-600 font-semibold">0%</p>
-                  <p className="text-xs text-gray-500">Return value</p>
-                </div>
-              </div>
+              ) : (
+                investments.map((investment, index) => {
+                  const returns = calculateInvestmentReturn(investment);
+                  const currentValue = Number(investment.currentPrice) * Number(investment.quantity);
+                  const colors = ['bg-blue-100', 'bg-orange-100', 'bg-purple-100', 'bg-green-100', 'bg-pink-100'];
+                  
+                  return (
+                    <div key={investment._id} className="flex items-center justify-between pb-4 border-b border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 ${colors[index % colors.length]} rounded-full flex items-center justify-center`}>
+                          <span className="text-xl">{getInvestmentIcon(investment.investmentType)}</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{investment.investmentName}</p>
+                          <p className="text-sm text-gray-500">{investment.investmentType}</p>
+                          <p className="text-xs text-gray-400">Qty: {investment.quantity} @ {formatCurrency(investment.purchasePrice)}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">{formatCurrency(currentValue)}</p>
+                        <p className="text-sm text-gray-500">Current value</p>
+                        <p className={`text-sm font-semibold ${returns.returnPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {returns.returnPercent >= 0 ? '+' : ''}{returns.returnPercent.toFixed(2)}%
+                        </p>
+                        <p className="text-xs text-gray-500">{formatCurrency(returns.returnAmount)} return</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
-          {/* Trending Stock */}
+          {/* Portfolio Summary */}
           <div className="bg-gray-900 text-white rounded-2xl p-6">
-            <h3 className="text-lg font-semibold mb-6">Trending stock</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 text-sm font-medium text-gray-400">Name</th>
-                    <th className="text-right py-3 text-sm font-medium text-gray-400">Price</th>
-                    <th className="text-right py-3 text-sm font-medium text-gray-400">Return</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-gray-800">
-                    <td className="py-3">Coinspace</td>
-                    <td className="text-right py-3">£100</td>
-                    <td className="text-right py-3 text-green-400">+10%</td>
-                  </tr>
-                  <tr className="border-b border-gray-800">
-                    <td className="py-3">DocSign</td>
-                    <td className="text-right py-3">£100</td>
-                    <td className="text-right py-3 text-red-400">-8%</td>
-                  </tr>
-                  <tr className="border-b border-gray-800">
-                    <td className="py-3">Target & Co.</td>
-                    <td className="text-right py-3">£100</td>
-                    <td className="text-right py-3 text-green-400">+10%</td>
-                  </tr>
-                  <tr className="border-b border-gray-800">
-                    <td className="py-3">MNL Bank</td>
-                    <td className="text-right py-3">£100</td>
-                    <td className="text-right py-3 text-green-400">+12%</td>
-                  </tr>
-                </tbody>
-              </table>
+            <h3 className="text-lg font-semibold mb-6">Portfolio summary</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-gray-700">
+                <span className="text-gray-400">Total invested</span>
+                <span className="font-semibold">{formatCurrency(stats.totalInvested)}</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-gray-700">
+                <span className="text-gray-400">Current value</span>
+                <span className="font-semibold">{formatCurrency(stats.currentValue)}</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-gray-700">
+                <span className="text-gray-400">Total return</span>
+                <span className={`font-semibold ${(stats.currentValue - stats.totalInvested) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {formatCurrency(stats.currentValue - stats.totalInvested)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-gray-700">
+                <span className="text-gray-400">Return rate</span>
+                <span className={`font-semibold ${stats.returnRate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {stats.returnRate >= 0 ? '+' : ''}{stats.returnRate.toFixed(2)}%
+                </span>
+              </div>
+              
+              {investments.length > 0 && (
+                <>
+                  <div className="mt-6 pt-4 border-t border-gray-700">
+                    <h4 className="text-sm font-semibold mb-3">Investment breakdown</h4>
+                    <div className="space-y-2">
+                      {investments.map((inv, index) => {
+                        const percentage = ((Number(inv.currentPrice) * Number(inv.quantity)) / stats.currentValue * 100).toFixed(1);
+                        return (
+                          <div key={inv._id} className="flex justify-between text-sm">
+                            <span className="text-gray-400">{inv.investmentName}</span>
+                            <span>{percentage}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
