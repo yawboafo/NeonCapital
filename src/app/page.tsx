@@ -4,36 +4,28 @@ import Image from "next/image";
 
 const accountTypes = [
   {
-    name: "Bronze",
-    earnings: "Avg. up to 30% daily",
-    bonus: "Up to 150% Bonus",
-    volume: "15 Lot Max Trade Volume",
-    manager: "Account Manager",
-    software: "PrimeBTRobotic Software",
+    name: "Basic",
+    features: ["Free Checking Account", "Debit Card", "Online Banking", "Mobile App Access"],
+    fee: "No Monthly Fee",
+    button: "Open Account",
   },
   {
-    name: "Silver",
-    earnings: "Avg. up to 50% daily",
-    bonus: "",
-    volume: "35 Lot Max Trade Volume",
-    manager: "Account Manager",
-    software: "PrimeBTRobotic Software",
+    name: "Premium",
+    features: ["Interest Checking", "Premium Debit Card", "Priority Customer Service", "Worldwide ATM Access"],
+    fee: "$10/month",
+    button: "Open Account",
   },
   {
-    name: "Gold",
-    earnings: "Avg. up to 65% daily",
-    bonus: "",
-    volume: "Unlimited Trade Volume",
-    manager: "Personal Account Manager",
-    software: "PrimeBTRobotic Software",
+    name: "Business",
+    features: ["Business Checking", "Merchant Services", "Business Credit Card", "Dedicated Account Manager"],
+    fee: "$25/month",
+    button: "Open Account",
   },
   {
-    name: "Diamond",
-    earnings: "Avg. up to 75% daily",
-    bonus: "",
-    volume: "Unlimited Trade Volume",
-    manager: "Personal Account Manager",
-    software: "PrimeBTRobotic Software",
+    name: "Wealth",
+    features: ["Private Banking", "Investment Advisory", "Exclusive Benefits", "Personal Relationship Manager"],
+    fee: "Contact Us",
+    button: "Learn More",
   },
 ];
 
@@ -106,55 +98,53 @@ export default function Home() {
 
       {/* Account Types Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 md:mb-8 text-center md:text-left">Trading Account Types</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 md:mb-8 text-center md:text-left">Banking Account Options</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {accountTypes.map((type) => (
-            <div key={type.name} className="bg-white/90 dark:bg-zinc-900 rounded-xl p-6 md:p-8 shadow-lg flex flex-col items-center">
-              <h3 className="text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-2">{type.name}</h3>
-              <ul className="mb-4 md:mb-6 text-zinc-700 dark:text-zinc-300 text-center text-sm md:text-base space-y-1">
-                <li>{type.earnings}</li>
-                {type.bonus && <li>{type.bonus}</li>}
-                <li>{type.volume}</li>
-                <li>{type.manager}</li>
-                <li className="text-xs md:text-sm">{type.software}</li>
-              </ul>
-              <a href="#" className="px-4 md:px-6 py-2 rounded bg-blue-700 text-white text-sm md:text-base font-semibold hover:bg-blue-800 transition">Open Live Account</a>
+            <div key={type.name} className="bg-white/90 dark:bg-zinc-900 rounded-xl p-6 md:p-8 shadow-lg flex flex-col items-center justify-between">
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-3 text-center">{type.name}</h3>
+                <div className="text-center mb-4">
+                  <span className="text-lg font-semibold text-gray-700 dark:text-gray-300">{type.fee}</span>
+                </div>
+                <ul className="mb-6 text-zinc-700 dark:text-zinc-300 text-left text-sm md:text-base space-y-2">
+                  {type.features.map((feature, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <a href="/login" className="w-full px-4 md:px-6 py-2 rounded bg-blue-700 text-white text-sm md:text-base font-semibold hover:bg-blue-800 transition text-center">{type.button}</a>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Copy Trading Promo */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12 flex flex-col md:flex-row items-center gap-8 md:gap-12">
-        <div className="flex-1 text-center md:text-left">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 md:mb-4">Copy Trades with Neon Capital</h2>
-          <p className="text-base sm:text-lg text-blue-100 mb-4 md:mb-6">Automatically copy trades of successful traders. Let professionals work for you!</p>
-          <a href="#" className="inline-block px-6 sm:px-8 py-2 sm:py-3 rounded-lg bg-yellow-400 text-blue-900 font-bold text-base sm:text-lg shadow-lg hover:bg-yellow-500 transition">Start Trading</a>
-        </div>
-        <div className="flex-1 flex justify-center">
-          <Image src="/bank-logo.svg" alt="Copy Trading" width={120} height={120} className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32" />
-        </div>
-      </section>
+
 
       {/* Testimonials */}
-      <section className="max-w-6xl mx-auto px-8 py-12">
-        <h2 className="text-3xl font-bold text-white mb-8">Testimonies & Happy Traders</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-8 shadow-lg">
-            <p className="mb-4 text-zinc-700 dark:text-zinc-300">“I opened an account 3 weeks ago and am already getting results every time without failing. Thanks again!”</p>
-            <span className="font-bold text-blue-900 dark:text-blue-300">Jared A. - Johannesburg</span>
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-8 md:py-12">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 md:mb-8 text-center md:text-left">What Our Customers Say</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+          <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-6 md:p-8 shadow-lg">
+            <p className="mb-3 md:mb-4 text-zinc-700 dark:text-zinc-300 text-sm md:text-base">"Neon Capital has transformed how I manage my finances. Their online banking platform is seamless and secure!"</p>
+            <span className="font-bold text-blue-900 dark:text-blue-300 text-sm md:text-base">Sarah M. - New York</span>
           </div>
-          <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-8 shadow-lg">
-            <p className="mb-4 text-zinc-700 dark:text-zinc-300">“No more staring at charts not knowing what to do. Now I sit and relax while the robot trades for me.”</p>
-            <span className="font-bold text-blue-900 dark:text-blue-300">David C. - United Kingdom</span>
+          <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-6 md:p-8 shadow-lg">
+            <p className="mb-3 md:mb-4 text-zinc-700 dark:text-zinc-300 text-sm md:text-base">"Excellent customer service and competitive rates. I've been banking with them for 5 years and couldn't be happier."</p>
+            <span className="font-bold text-blue-900 dark:text-blue-300 text-sm md:text-base">David C. - United Kingdom</span>
           </div>
-          <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-8 shadow-lg">
-            <p className="mb-4 text-zinc-700 dark:text-zinc-300">“Up 52% on my account. Using IFX Expert Robot. It’s like taking candies from a baby!”</p>
-            <span className="font-bold text-blue-900 dark:text-blue-300">Jerry Copeland - Canada</span>
+          <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-6 md:p-8 shadow-lg">
+            <p className="mb-3 md:mb-4 text-zinc-700 dark:text-zinc-300 text-sm md:text-base">"The business banking solutions have helped my company grow. Their dedicated account managers are incredibly helpful."</p>
+            <span className="font-bold text-blue-900 dark:text-blue-300 text-sm md:text-base">James T. - Toronto</span>
           </div>
-          <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-8 shadow-lg">
-            <p className="mb-4 text-zinc-700 dark:text-zinc-300">“Quick cash out! Neon Capital trading is the best cryptocurrency trading.”</p>
-            <span className="font-bold text-blue-900 dark:text-blue-300">Dr. Juliet D. - United Kingdom</span>
+          <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-6 md:p-8 shadow-lg">
+            <p className="mb-3 md:mb-4 text-zinc-700 dark:text-zinc-300 text-sm md:text-base">"Fast, reliable, and trustworthy. Neon Capital is my go-to bank for all my financial needs."</p>
+            <span className="font-bold text-blue-900 dark:text-blue-300 text-sm md:text-base">Dr. Jennifer L. - London</span>
           </div>
         </div>
       </section>
