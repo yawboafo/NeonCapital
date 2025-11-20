@@ -2,7 +2,7 @@ import Image from "next/image";
 
 const stats = [
   { number: "50,000+", label: "Active Customers" },
-  { number: "$2.5B+", label: "Assets Under Management" },
+  { number: "£2.5B+", label: "Assets Under Management" },
   { number: "15+", label: "Years of Excellence" },
   { number: "99.9%", label: "Uptime Guarantee" }
 ];
@@ -62,7 +62,7 @@ const timeline = [
   { year: "2013", event: "Launched first mobile banking app with biometric authentication" },
   { year: "2016", event: "Expanded to 50,000 customers and opened 5 branch locations across the UK" },
   { year: "2019", event: "Introduced AI-powered financial advisory services" },
-  { year: "2022", event: "Achieved carbon-neutral operations and $2B in assets" },
+  { year: "2022", event: "Achieved carbon-neutral operations and £2B in assets" },
   { year: "2025", event: "Leading digital-first banking with 100% uptime and award-winning service" }
 ];
 

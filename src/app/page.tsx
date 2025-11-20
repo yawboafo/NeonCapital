@@ -12,13 +12,13 @@ const accountTypes = [
   {
     name: "Premium",
     features: ["Interest Checking", "Premium Debit Card", "Priority Customer Service", "Worldwide ATM Access"],
-    fee: "$10/month",
+    fee: "£10/month",
     button: "Open Account",
   },
   {
     name: "Business",
     features: ["Business Checking", "Merchant Services", "Business Credit Card", "Dedicated Account Manager"],
-    fee: "$25/month",
+    fee: "£25/month",
     button: "Open Account",
   },
   {

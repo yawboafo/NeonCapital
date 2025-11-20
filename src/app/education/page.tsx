@@ -69,9 +69,9 @@ const categories = [
         summary: "Why you need emergency savings and how to build it step by step.",
         content: [
           "An emergency fund is money set aside to cover unexpected expenses or income loss. It prevents you from going into debt when life happens.",
-          "Goal amount: Start with $1,000 for minor emergencies, then build to 3-6 months of living expenses. Self-employed individuals should aim for 6-12 months.",
+          "Goal amount: Start with £1,000 for minor emergencies, then build to 3-6 months of living expenses. Self-employed individuals should aim for 6-12 months.",
           "Where to keep it: High-yield savings account that's separate from your checking but easily accessible. Avoid investments that fluctuate in value.",
-          "Building strategy: Set up automatic transfers on payday (even $25-50/week adds up), deposit windfalls like tax refunds or bonuses, save any unspent budget money.",
+          "Building strategy: Set up automatic transfers on payday (even £25-50/week adds up), deposit windfalls like tax refunds or bonuses, save any unspent budget money.",
           "When to use it: Job loss, medical emergencies, major car repairs, essential home repairs. Not for: vacations, planned purchases, or wants.",
           "After using your fund, make replenishing it a priority before returning to other financial goals."
         ]
@@ -83,7 +83,7 @@ const categories = [
         content: [
           "Pay yourself first: Treat savings as a non-negotiable bill. Automate transfers to savings right after payday before spending money.",
           "The 24-hour rule: Wait 24 hours before making non-essential purchases. Often, the impulse fades and you'll save money.",
-          "Round-up savings: Use apps or bank features that round up purchases to the nearest dollar and save the difference. $0.50 here and there adds up quickly.",
+          "Round-up savings: Use apps or bank features that round up purchases to the nearest pound and save the difference. £0.50 here and there adds up quickly.",
           "Challenge yourself: Try no-spend weekends, pack lunch 3x/week, or cut one subscription monthly. Small changes create significant savings over time.",
           "Track progress visually: Use savings trackers or apps that show your progress toward goals. Seeing growth motivates continued saving."
         ]
@@ -161,8 +161,8 @@ const categories = [
         readTime: "8 min read",
         summary: "401(k), IRA, Roth IRA, and other retirement accounts explained and compared.",
         content: [
-          "401(k): Employer-sponsored retirement plan. Contributions reduce current taxable income, and employer may match contributions (free money!). 2025 limit: $23,000 ($30,500 if 50+).",
-          "Traditional IRA: Individual retirement account with tax-deductible contributions (if eligible). Earnings grow tax-deferred. 2025 limit: $7,000 ($8,000 if 50+). Withdrawals taxed as income.",
+          "401(k): Employer-sponsored retirement plan. Contributions reduce current taxable income, and employer may match contributions (free money!). 2025 limit: £23,000 (£30,500 if 50+).",
+          "Traditional IRA: Individual retirement account with tax-deductible contributions (if eligible). Earnings grow tax-deferred. 2025 limit: £7,000 (£8,000 if 50+). Withdrawals taxed as income.",
           "Roth IRA: Contributions made with after-tax dollars, but withdrawals in retirement are tax-free. Same limits as traditional IRA. Best for younger workers expecting higher future tax rates.",
           "Which to prioritize: 1) 401(k) to get full employer match, 2) Max Roth IRA if eligible, 3) Return to 401(k) to max contribution, 4) Consider taxable brokerage if still have funds.",
           "Key rules: Can't withdraw before 59½ without penalties (some exceptions exist), required minimum distributions start at 73, income limits apply to some accounts.",

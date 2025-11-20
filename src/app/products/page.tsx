@@ -18,7 +18,7 @@ const products = [
         "Overdraft protection available",
         "Automatic savings plans"
       ],
-      requirements: "Minimum opening deposit of $25 for checking, $100 for savings"
+      requirements: "Minimum opening deposit of £25 for checking, £100 for savings"
     }
   },
   {
@@ -94,7 +94,7 @@ const products = [
         "Financial planning and consultation",
         "Low management fees starting at 0.25%"
       ],
-      requirements: "Minimum investment of $1,000 to start"
+      requirements: "Minimum investment of £1,000 to start"
     }
   },
   {
