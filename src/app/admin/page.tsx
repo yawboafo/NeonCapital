@@ -803,7 +803,127 @@ function AccountManagement() {
 
 // Transfer Management Component
 function TransferManagement() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [transfers, setTransfers] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingTransfer, setEditingTransfer] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    userId: "",
+    recipientName: "",
+    recipientAccount: "",
+    amount: "",
+    currency: "GBP",
+    type: "Domestic",
+    status: "Pending",
+  });
+
+  useEffect(() => {
+    fetchUsers();
+    fetchTransfers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+      if (data.success) setUsers(data.users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchTransfers = async () => {
+    try {
+      const response = await fetch("/api/transfers");
+      const data = await response.json();
+      if (data.success) setTransfers(data.transfers);
+    } catch (error) {
+      console.error("Error fetching transfers:", error);
+    }
+  };
+
+  const getUserName = (userId: string) => {
+    const user = users.find((u) => u._id === userId);
+    return user ? `${user.firstName} ${user.lastName}` : "Unknown";
+  };
+
+  const handleCreateTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch("/api/transfers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, amount: parseFloat(formData.amount) }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFormData({ userId: "", recipientName: "", recipientAccount: "", amount: "", currency: "GBP", type: "Domestic", status: "Pending" });
+        setShowCreateForm(false);
+        fetchTransfers();
+      }
+    } catch (error) {
+      console.error("Error creating transfer:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditTransfer = (transfer: any) => {
+    setEditingTransfer(transfer);
+    setFormData({
+      userId: transfer.userId,
+      recipientName: transfer.recipientName,
+      recipientAccount: transfer.recipientAccount,
+      amount: transfer.amount.toString(),
+      currency: transfer.currency,
+      type: transfer.type,
+      status: transfer.status,
+    });
+    setShowEditForm(true);
+    setShowCreateForm(false);
+  };
+
+  const handleUpdateTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTransfer) return;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/transfers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transferId: editingTransfer._id, ...formData, amount: parseFloat(formData.amount) }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFormData({ userId: "", recipientName: "", recipientAccount: "", amount: "", currency: "GBP", type: "Domestic", status: "Pending" });
+        setShowEditForm(false);
+        setEditingTransfer(null);
+        fetchTransfers();
+      }
+    } catch (error) {
+      console.error("Error updating transfer:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTransfer = async (transferId: string) => {
+    if (!confirm("Delete this transfer?")) return;
+    try {
+      const response = await fetch("/api/transfers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transferId }),
+      });
+      const data = await response.json();
+      if (data.success) fetchTransfers();
+    } catch (error) {
+      console.error("Error deleting transfer:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -811,7 +931,7 @@ function TransferManagement() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Transfer Management</h2>
           <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => { setShowCreateForm(!showCreateForm); setShowEditForm(false); }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             {showCreateForm ? "Cancel" : "+ Create New Transfer"}
@@ -819,107 +939,167 @@ function TransferManagement() {
         </div>
 
         {showCreateForm && (
-          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <form onSubmit={handleCreateTransfer} className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Transfer</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">From Account</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>John Doe - Checking (£10,000.00)</option>
-                  <option>John Doe - Savings (£8,000.00)</option>
-                  <option>Jane Smith - Checking (£15,500.00)</option>
+                <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <select value={formData.userId} onChange={(e) => setFormData({ ...formData, userId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="">Select User</option>
+                  {users.map((user) => <option key={user._id} value={user._id}>{user.firstName} {user.lastName}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Name</label>
+                <input type="text" value={formData.recipientName} onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Account</label>
+                <input type="text" value={formData.recipientAccount} onChange={(e) => setFormData({ ...formData, recipientAccount: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+                <select value={formData.currency} onChange={(e) => setFormData({ ...formData, currency: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="GBP">GBP (£)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Transfer Type</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Internal Transfer</option>
-                  <option>External Transfer</option>
-                  <option>International Transfer</option>
+                <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Domestic">Domestic</option>
+                  <option value="International">International</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
-                <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Beneficiary Name</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Recipient Name" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Beneficiary IBAN</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="GB29 NWBK 6016 1331 9268 19" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Beneficiary Sort Code</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="60-16-13" />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Reference</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Payment reference" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Transfer Date</label>
-                <input type="date" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Pending</option>
-                  <option>Completed</option>
-                  <option>Failed</option>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Pending">Pending</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Failed">Failed</option>
                 </select>
               </div>
             </div>
             <div className="mt-6 flex gap-3">
-              <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                Create Transfer
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {loading ? "Creating..." : "Create Transfer"}
               </button>
-              <button onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+              <button type="button" onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium">
                 Cancel
               </button>
             </div>
-          </div>
+          </form>
         )}
 
-        {/* Transfers List */}
+        {showEditForm && editingTransfer && (
+          <form onSubmit={handleUpdateTransfer} className="bg-blue-50 p-6 rounded-lg mb-6 border-2 border-blue-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Transfer</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <select value={formData.userId} onChange={(e) => setFormData({ ...formData, userId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="">Select User</option>
+                  {users.map((user) => <option key={user._id} value={user._id}>{user.firstName} {user.lastName}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Name</label>
+                <input type="text" value={formData.recipientName} onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Account</label>
+                <input type="text" value={formData.recipientAccount} onChange={(e) => setFormData({ ...formData, recipientAccount: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+                <select value={formData.currency} onChange={(e) => setFormData({ ...formData, currency: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="GBP">GBP (£)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Transfer Type</label>
+                <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Domestic">Domestic</option>
+                  <option value="International">International</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Pending">Pending</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Failed">Failed</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {loading ? "Updating..." : "Update Transfer"}
+              </button>
+              <button type="button" onClick={() => { setShowEditForm(false); setEditingTransfer(null); }} className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium">
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {[
-                { from: "John Doe - Checking", to: "Jane Smith", amount: "£500.00", date: "2025-11-19", status: "Completed" },
-                { from: "Jane Smith - Checking", to: "External Account", amount: "£1,200.00", date: "2025-11-18", status: "Pending" },
-              ].map((transfer, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transfer.from}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transfer.to}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{transfer.amount}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transfer.date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      transfer.status === "Completed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {transfer.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">View</button>
-                    <button className="text-red-600 hover:text-red-900">Cancel</button>
-                  </td>
+          {transfers.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">No transfers found. Create one to get started.</div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipient</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {transfers.map((transfer) => (
+                  <tr key={transfer._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getUserName(transfer.userId)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="font-medium">{transfer.recipientName}</div>
+                      <div className="text-xs text-gray-500">{transfer.recipientAccount}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      {transfer.currency === "GBP" && "£"}{transfer.currency === "USD" && "$"}{transfer.currency === "EUR" && "€"}
+                      {transfer.amount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transfer.type}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        transfer.status === "Completed" ? "bg-green-100 text-green-800" : transfer.status === "Pending" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"
+                      }`}>
+                        {transfer.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(transfer.createdAt).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button onClick={() => handleEditTransfer(transfer)} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                      <button onClick={() => handleDeleteTransfer(transfer._id)} className="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
