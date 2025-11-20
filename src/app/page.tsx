@@ -91,8 +91,28 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-blue-400 font-sans text-zinc-900 dark:text-zinc-100">
 
       {/* Hero Section - Slider */}
-      <section className="relative w-full bg-gradient-to-r from-blue-900 via-blue-700 to-blue-400 py-12 md:py-20 px-12 md:px-16 max-w-7xl mx-auto overflow-hidden">
-        <div className="relative">
+      <section className="relative w-full bg-gradient-to-r from-blue-900 via-blue-700 to-blue-400 py-12 md:py-20 max-w-7xl mx-auto">
+        {/* Navigation Arrows - Outside Content */}
+        <button
+          onClick={prevSlide}
+          className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 hover:bg-white/40 text-white p-3 rounded-lg backdrop-blur-sm transition shadow-lg"
+          aria-label="Previous slide"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          onClick={nextSlide}
+          className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 hover:bg-white/40 text-white p-3 rounded-lg backdrop-blur-sm transition shadow-lg"
+          aria-label="Next slide"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <div className="relative px-4 md:px-20">
           {/* Slides */}
           <div className="relative h-[500px] md:h-[400px]">
             {slides.map((slide, index) => (
@@ -102,8 +122,8 @@ export default function Home() {
                   index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
                 }`}
               >
-                <div className="flex flex-col md:flex-row items-center justify-between gap-8 h-full px-4">
-                  <div className="flex-1 flex flex-col justify-center text-center md:text-left relative z-20">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8 h-full">
+                  <div className="flex-1 flex flex-col justify-center text-center md:text-left">
                     <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 md:mb-6 text-white drop-shadow-lg leading-tight">
                       {slide.title}
                     </h1>
@@ -119,7 +139,7 @@ export default function Home() {
                       </a>
                     </div>
                   </div>
-                  <div className="flex-1 flex justify-center relative z-20 w-full md:w-auto">
+                  <div className="flex-1 flex justify-center w-full md:w-auto">
                     <Image 
                       src={slide.image} 
                       alt={slide.imageAlt} 
@@ -132,26 +152,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-
-          {/* Navigation Arrows */}
-          <button
-            onClick={prevSlide}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 bg-white/20 hover:bg-white/40 text-white p-2 md:p-3 rounded-lg backdrop-blur-sm transition shadow-lg"
-            aria-label="Previous slide"
-          >
-            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 bg-white/20 hover:bg-white/40 text-white p-2 md:p-3 rounded-lg backdrop-blur-sm transition shadow-lg"
-            aria-label="Next slide"
-          >
-            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
 
           {/* Dots Navigation */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
