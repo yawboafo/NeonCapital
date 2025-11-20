@@ -1654,7 +1654,140 @@ function InvestmentManagement() {
 
 // Card Management Component
 function CardManagement() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [cards, setCards] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingCard, setEditingCard] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    userId: "",
+    cardType: "Debit Card",
+    cardNumber: "",
+    cardHolderName: "",
+    expiryDate: "",
+    cvv: "",
+    limit: "",
+    balance: "0",
+    status: "Active",
+  });
+
+  useEffect(() => {
+    fetchUsers();
+    fetchCards();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+      if (data.success) setUsers(data.users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchCards = async () => {
+    try {
+      const response = await fetch("/api/cards");
+      const data = await response.json();
+      if (data.success) setCards(data.cards);
+    } catch (error) {
+      console.error("Error fetching cards:", error);
+    }
+  };
+
+  const getUserName = (userId: string) => {
+    const user = users.find((u) => u._id === userId);
+    return user ? `${user.firstName} ${user.lastName}` : "Unknown User";
+  };
+
+  const handleCreateCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch("/api/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          limit: parseFloat(formData.limit),
+          balance: parseFloat(formData.balance),
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFormData({ userId: "", cardType: "Debit Card", cardNumber: "", cardHolderName: "", expiryDate: "", cvv: "", limit: "", balance: "0", status: "Active" });
+        setShowCreateForm(false);
+        fetchCards();
+      }
+    } catch (error) {
+      console.error("Error creating card:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditCard = (card: any) => {
+    setEditingCard(card);
+    setFormData({
+      userId: card.userId,
+      cardType: card.cardType,
+      cardNumber: card.cardNumber,
+      cardHolderName: card.cardHolderName,
+      expiryDate: card.expiryDate,
+      cvv: card.cvv,
+      limit: card.limit.toString(),
+      balance: card.balance.toString(),
+      status: card.status,
+    });
+    setShowEditForm(true);
+    setShowCreateForm(false);
+  };
+
+  const handleUpdateCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCard) return;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/cards", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId: editingCard._id,
+          ...formData,
+          limit: parseFloat(formData.limit),
+          balance: parseFloat(formData.balance),
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFormData({ userId: "", cardType: "Debit Card", cardNumber: "", cardHolderName: "", expiryDate: "", cvv: "", limit: "", balance: "0", status: "Active" });
+        setShowEditForm(false);
+        setEditingCard(null);
+        fetchCards();
+      }
+    } catch (error) {
+      console.error("Error updating card:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    if (!confirm("Cancel this card?")) return;
+    try {
+      const response = await fetch("/api/cards", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId }),
+      });
+      const data = await response.json();
+      if (data.success) fetchCards();
+    } catch (error) {
+      console.error("Error deleting card:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1662,7 +1795,7 @@ function CardManagement() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Card Management</h2>
           <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => { setShowCreateForm(!showCreateForm); setShowEditForm(false); }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             {showCreateForm ? "Cancel" : "+ Issue New Card"}
@@ -1670,123 +1803,180 @@ function CardManagement() {
         </div>
 
         {showCreateForm && (
-          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <form onSubmit={handleCreateCard} className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Issue New Card</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>John Doe - john@example.com</option>
-                  <option>Jane Smith - jane@example.com</option>
+                <select value={formData.userId} onChange={(e) => setFormData({ ...formData, userId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="">Select User</option>
+                  {users.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.firstName} {user.lastName} - {user.email}
+                    </option>
+                  ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Card Holder Name</label>
+                <input type="text" value={formData.cardHolderName} onChange={(e) => setFormData({ ...formData, cardHolderName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="John Doe" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Debit Card</option>
-                  <option>Credit Card</option>
-                  <option>Virtual Card</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Card Tier</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Standard</option>
-                  <option>Gold</option>
-                  <option>Platinum</option>
-                  <option>Black</option>
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Linked Account</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Checking Account - £10,000.00</option>
-                  <option>Savings Account - £8,000.00</option>
+                <select value={formData.cardType} onChange={(e) => setFormData({ ...formData, cardType: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Debit Card">Debit Card</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Virtual Card">Virtual Card</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Card Number</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="4532 1234 5678 9010" />
+                <input type="text" value={formData.cardNumber} onChange={(e) => setFormData({ ...formData, cardNumber: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="4532123456789010" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">CVV</label>
-                <input type="text" maxLength={3} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="123" />
+                <input type="text" maxLength={3} value={formData.cvv} onChange={(e) => setFormData({ ...formData, cvv: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="123" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
-                <input type="month" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date (MM/YY)</label>
+                <input type="text" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="12/27" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Daily Limit</label>
-                <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="1000.00" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">PIN</label>
-                <input type="password" maxLength={4} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="****" />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Daily Limit (£)</label>
+                <input type="number" step="0.01" value={formData.limit} onChange={(e) => setFormData({ ...formData, limit: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="1000.00" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Active</option>
-                  <option>Blocked</option>
-                  <option>Expired</option>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Active">Active</option>
+                  <option value="Blocked">Blocked</option>
+                  <option value="Expired">Expired</option>
                 </select>
               </div>
             </div>
             <div className="mt-6 flex gap-3">
-              <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                Issue Card
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {loading ? "Issuing..." : "Issue Card"}
               </button>
-              <button onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+              <button type="button" onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium">
                 Cancel
               </button>
             </div>
-          </div>
+          </form>
         )}
 
-        {/* Cards List */}
-        <div className="grid gap-4">
-          {[
-            { user: "John Doe", type: "Debit", number: "**** **** **** 9010", expiry: "12/27", status: "Active", limit: "£1,000/day" },
-            { user: "John Doe", type: "Credit", number: "**** **** **** 5432", expiry: "08/26", status: "Active", limit: "£5,000/day" },
-            { user: "Jane Smith", type: "Debit", number: "**** **** **** 7890", expiry: "03/28", status: "Active", limit: "£1,500/day" },
-          ].map((card, i) => (
-            <div key={i} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h4 className="font-semibold text-gray-900">{card.user} - {card.type} Card</h4>
-                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{card.status}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Card Number</p>
-                      <p className="text-sm font-mono font-medium text-gray-900">{card.number}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Expiry</p>
-                      <p className="text-sm font-medium text-gray-900">{card.expiry}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Daily Limit</p>
-                      <p className="text-sm font-medium text-gray-900">{card.limit}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 ml-6">
-                  <button className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
-                    Edit
-                  </button>
-                  <button className="px-4 py-2 bg-yellow-50 hover:bg-yellow-100 text-yellow-600 rounded-lg text-sm font-medium transition-colors">
-                    Block
-                  </button>
-                  <button className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors">
-                    Cancel
-                  </button>
-                </div>
+        {showEditForm && editingCard && (
+          <form onSubmit={handleUpdateCard} className="bg-blue-50 p-6 rounded-lg mb-6 border-2 border-blue-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Card</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <select value={formData.userId} onChange={(e) => setFormData({ ...formData, userId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="">Select User</option>
+                  {users.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.firstName} {user.lastName} - {user.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Card Holder Name</label>
+                <input type="text" value={formData.cardHolderName} onChange={(e) => setFormData({ ...formData, cardHolderName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Card Type</label>
+                <select value={formData.cardType} onChange={(e) => setFormData({ ...formData, cardType: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Debit Card">Debit Card</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Virtual Card">Virtual Card</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Card Number</label>
+                <input type="text" value={formData.cardNumber} onChange={(e) => setFormData({ ...formData, cardNumber: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">CVV</label>
+                <input type="text" maxLength={3} value={formData.cvv} onChange={(e) => setFormData({ ...formData, cvv: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date (MM/YY)</label>
+                <input type="text" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Daily Limit (£)</label>
+                <input type="number" step="0.01" value={formData.limit} onChange={(e) => setFormData({ ...formData, limit: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Active">Active</option>
+                  <option value="Blocked">Blocked</option>
+                  <option value="Expired">Expired</option>
+                </select>
               </div>
             </div>
-          ))}
+            <div className="mt-6 flex gap-3">
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {loading ? "Updating..." : "Update Card"}
+              </button>
+              <button type="button" onClick={() => { setShowEditForm(false); setEditingCard(null); }} className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium">
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
+        <div className="grid gap-4">
+          {cards.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">No cards found. Issue one to get started.</div>
+          ) : (
+            cards.map((card) => (
+              <div key={card._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h4 className="font-semibold text-gray-900">{getUserName(card.userId)} - {card.cardType}</h4>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        card.status === "Active" ? "bg-green-100 text-green-800" : 
+                        card.status === "Blocked" ? "bg-yellow-100 text-yellow-800" : 
+                        "bg-red-100 text-red-800"
+                      }`}>
+                        {card.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Card Holder</p>
+                        <p className="text-sm font-medium text-gray-900">{card.cardHolderName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Card Number</p>
+                        <p className="text-sm font-mono font-medium text-gray-900">**** **** **** {card.cardNumber.slice(-4)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Expiry</p>
+                        <p className="text-sm font-medium text-gray-900">{card.expiryDate}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Daily Limit</p>
+                        <p className="text-sm font-medium text-gray-900">£{card.limit.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-6">
+                    <button onClick={() => handleEditCard(card)} className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
+                      Edit
+                    </button>
+                    <button onClick={() => handleDeleteCard(card._id)} className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

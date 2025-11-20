@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -8,10 +8,97 @@ export default function Dashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [user, setUser] = useState<any>(null);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [investments, setInvestments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get user from localStorage
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+
+    // Fetch user's data
+    fetchUserData(parsedUser._id);
+  }, []);
+
+  const fetchUserData = async (userId: string) => {
+    try {
+      // Fetch accounts
+      const accountsRes = await fetch(`/api/accounts?userId=${userId}`);
+      const accountsData = await accountsRes.json();
+      setAccounts(accountsData.accounts || []);
+
+      // Fetch transactions for all user accounts
+      const transactionsRes = await fetch(`/api/transactions?userId=${userId}`);
+      const transactionsData = await transactionsRes.json();
+      setTransactions(transactionsData.transactions || []);
+
+      // Fetch investments
+      const investmentsRes = await fetch(`/api/investments?userId=${userId}`);
+      const investmentsData = await investmentsRes.json();
+      setInvestments(investmentsData.investments || []);
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setLoading(false);
+    }
+  };
+
+  const calculateTotalBalance = () => {
+    return accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+  };
+
+  const calculateTotalIncome = () => {
+    return transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  };
+
+  const calculateTotalExpenses = () => {
+    return transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+  };
+
+  const calculateInvestmentValue = () => {
+    return investments.reduce((sum, inv) => 
+      sum + ((inv.currentPrice || 0) * (inv.quantity || 0)), 0
+    );
+  };
+
+  const getRecentTransactions = () => {
+    return transactions
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+  };
+
+  const formatCurrency = (amount: number, currency: string = 'GBP') => {
+    const symbol = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€';
+    const numAmount = Math.abs(Number(amount) || 0);
+    return `${symbol}${numAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     router.push("/");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading your dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -104,38 +191,64 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 ml-64 p-8">
 
+        {/* Welcome Message */}
+        {user && (
+          <div className="mb-6">
+            <h2 className="text-3xl font-bold text-gray-900">Welcome back, {user.firstName}!</h2>
+            <p className="text-gray-600 mt-1">Here's your financial overview</p>
+          </div>
+        )}
+
         {/* Balance Cards */}
         <div className="grid grid-cols-2 gap-6 mb-8">
           {/* Total Balance Card */}
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-gray-700">Total Balance</h3>
-              <span className="text-cyan-600 text-sm">📈 2.36%</span>
+              <span className="text-cyan-600 text-sm">💰 {accounts.length} Accounts</span>
             </div>
-            <p className="text-4xl font-bold text-gray-900 mb-4">£10,000.00</p>
+            <p className="text-4xl font-bold text-gray-900 mb-4">
+              {formatCurrency(calculateTotalBalance())}
+            </p>
             <div className="flex gap-8 text-sm">
               <div>
                 <p className="text-gray-600 mb-1">▲ Income</p>
-                <p className="font-semibold text-gray-900">£30,000.00</p>
+                <p className="font-semibold text-green-600">
+                  {formatCurrency(calculateTotalIncome())}
+                </p>
               </div>
               <div>
                 <p className="text-gray-600 mb-1">▼ Expenses</p>
-                <p className="font-semibold text-gray-900">£20,000.00</p>
+                <p className="font-semibold text-red-600">
+                  {formatCurrency(calculateTotalExpenses())}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Total Savings Card */}
+          {/* Total Investments Card */}
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-700">Total Savings</h3>
-              <span className="text-cyan-600 text-sm">📈 2.36%</span>
+              <h3 className="text-sm font-medium text-gray-700">Total Investments</h3>
+              <span className="text-cyan-600 text-sm">📈 {investments.length} Assets</span>
             </div>
-              <p className="text-4xl font-bold text-gray-900 mb-4">£5,000.00</p>
+            <p className="text-4xl font-bold text-gray-900 mb-4">
+              {formatCurrency(calculateInvestmentValue())}
+            </p>
             <div className="flex gap-1 items-end h-16">
-              {[30, 40, 35, 45, 50, 60, 55, 70, 65, 75, 80, 90].map((height, i) => (
-                <div key={i} className="flex-1 bg-blue-300 rounded-t" style={{ height: `${height}%` }}></div>
-              ))}
+              {investments.length > 0 ? (
+                investments.slice(0, 12).map((inv, i) => {
+                  const gain = ((inv.currentPrice - inv.purchasePrice) / inv.purchasePrice) * 100;
+                  const height = Math.min(Math.max(gain + 50, 20), 100);
+                  return (
+                    <div key={i} className="flex-1 bg-blue-300 rounded-t" style={{ height: `${height}%` }}></div>
+                  );
+                })
+              ) : (
+                [30, 40, 35, 45, 50, 60, 55, 70, 65, 75, 80, 90].map((height, i) => (
+                  <div key={i} className="flex-1 bg-blue-300 rounded-t opacity-30" style={{ height: `${height}%` }}></div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -226,14 +339,16 @@ export default function Dashboard() {
           {/* Transactions */}
           <div className="bg-white rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Transactions</h3>
-              <button className="text-blue-600 text-sm">View all</button>
+              <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
+              <Link href="/dashboard/transactions" className="text-blue-600 text-sm hover:underline">
+                View all
+              </Link>
             </div>
             <div className="flex gap-2 mb-6 text-sm">
               <button onClick={() => setActiveTab("all")} className={`px-4 py-1 rounded-full ${activeTab === "all" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
                 All
               </button>
-              <button onClick={() => setActiveTab("expenses")} className={`px-4 py-1 rounded-full ${activeTab === "expenses" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
+              <button onClick={() => setActiveTab("expense")} className={`px-4 py-1 rounded-full ${activeTab === "expense" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
                 Expenses
               </button>
               <button onClick={() => setActiveTab("income")} className={`px-4 py-1 rounded-full ${activeTab === "income" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"}`}>
@@ -241,28 +356,51 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="space-y-4">
-              {[
-                { name: "Central Burger", category: "Cafe and Restaurant", amount: "-£189.36", color: "bg-purple-200" },
-                { name: "The Market", category: "Groceries", amount: "-£92.50", color: "bg-blue-200" },
-                { name: "Quick Transfer", category: "Maria Purple", amount: "+£350.00", color: "bg-orange-200", positive: true },
-                { name: "The Market", category: "Groceries", amount: "-£36.20", color: "bg-purple-200" },
-                { name: "Central Burger", category: "Cafe and Restaurant", amount: "-£189.36", color: "bg-blue-200" },
-              ].map((transaction, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 ${transaction.color} rounded-full flex items-center justify-center`}>
-                      {transaction.positive ? "📤" : "🏪"}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{transaction.name}</p>
-                      <p className="text-xs text-gray-500">{transaction.category}</p>
-                    </div>
-                  </div>
-                  <span className={`font-semibold ${transaction.positive ? "text-green-600" : "text-red-600"}`}>
-                    {transaction.amount}
-                  </span>
+              {getRecentTransactions().length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No transactions yet</p>
+                  <Link href="/dashboard/transactions" className="text-blue-600 text-sm hover:underline mt-2 inline-block">
+                    Add your first transaction
+                  </Link>
                 </div>
-              ))}
+              ) : (
+                getRecentTransactions()
+                  .filter(t => activeTab === 'all' || t.type === activeTab)
+                  .map((transaction, i) => {
+                    const categoryColors: any = {
+                      'Groceries': 'bg-purple-200',
+                      'Restaurant': 'bg-blue-200',
+                      'Shopping': 'bg-pink-200',
+                      'Transport': 'bg-green-200',
+                      'Utilities': 'bg-yellow-200',
+                      'Salary': 'bg-orange-200',
+                      'Entertainment': 'bg-indigo-200',
+                      'Healthcare': 'bg-red-200',
+                      'Other': 'bg-gray-200',
+                    };
+                    const color = categoryColors[transaction.category] || 'bg-gray-200';
+                    
+                    return (
+                      <div key={transaction._id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 ${color} rounded-full flex items-center justify-center text-lg`}>
+                            {transaction.type === 'income' ? "📤" : "🏪"}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">
+                              {transaction.merchantName || transaction.description}
+                            </p>
+                            <p className="text-xs text-gray-500">{transaction.category}</p>
+                          </div>
+                        </div>
+                        <span className={`font-semibold ${transaction.type === 'income' ? "text-green-600" : "text-red-600"}`}>
+                          {transaction.type === 'income' ? '+' : '-'}
+                          {formatCurrency(Math.abs(transaction.amount))}
+                        </span>
+                      </div>
+                    );
+                  })
+              )}
             </div>
           </div>
         </div>

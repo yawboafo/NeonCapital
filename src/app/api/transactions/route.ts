@@ -12,13 +12,24 @@ export async function GET(request: NextRequest) {
     const db = client.db('neoncapital');
 
     let query: any = {};
-    if (userId) query.userId = userId;
-    if (accountId) query.accountId = accountId;
+    
+    if (accountId) {
+      query.accountId = accountId;
+    } else if (userId) {
+      // If userId is provided without accountId, get all accounts for this user first
+      const accounts = await db.collection('accounts').find({ userId }).toArray();
+      const accountIds = accounts.map(acc => acc._id.toString());
+      query.accountId = { $in: accountIds };
+    }
 
-    const transactions = await db.collection('transactions').find(query).sort({ date: -1 }).toArray();
+    const transactions = await db.collection('transactions')
+      .find(query)
+      .sort({ createdAt: -1 })
+      .toArray();
 
     return NextResponse.json({ success: true, transactions });
   } catch (error) {
+    console.error('Get transactions error:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch transactions' }, { status: 500 });
   }
 }

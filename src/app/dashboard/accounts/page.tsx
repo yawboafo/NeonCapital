@@ -1,16 +1,64 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function Accounts() {
   const router = useRouter();
   const [activeNav, setActiveNav] = useState("accounts");
+  const [user, setUser] = useState<any>(null);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [cards, setCards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    fetchData(parsedUser._id);
+  }, []);
+
+  const fetchData = async (userId: string) => {
+    try {
+      const accountsRes = await fetch(`/api/accounts?userId=${userId}`);
+      const accountsData = await accountsRes.json();
+      setAccounts(accountsData.accounts || []);
+
+      const cardsRes = await fetch(`/api/cards?userId=${userId}`);
+      const cardsData = await cardsRes.json();
+      setCards(cardsData.cards || []);
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number, currency: string = 'GBP') => {
+    const symbol = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€';
+    const numAmount = Number(amount) || 0;
+    return `${symbol}${numAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     router.push("/");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading your accounts...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -76,196 +124,142 @@ export default function Accounts() {
 
         {/* My Accounts */}
         <div className="mb-12">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">My accounts</h3>
-          <div className="grid grid-cols-3 gap-6">
-            {/* Checking Account */}
-            <div className="bg-gray-900 text-white rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold">Checking Account</h4>
-                <span className="text-cyan-400 text-sm">📈 2.36%</span>
-              </div>
-              <div className="mb-6">
-                <p className="text-sm text-gray-400 mb-1">Available balance</p>
-                <p className="text-3xl font-bold">£10,000.00</p>
-              </div>
-              <div className="border-t border-gray-700 pt-4 space-y-2">
-                <div>
-                  <p className="text-sm text-gray-400">IBAN</p>
-                  <p className="font-medium">AB11 0000 0000 1111 1111</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Account owner</p>
-                  <p className="font-medium">Nicola Rich</p>
-                </div>
-              </div>
-              <button className="w-full mt-6 py-3 bg-purple-200 text-gray-900 rounded-lg font-medium hover:bg-purple-300 transition">
-                See details
-              </button>
-            </div>
-
-            {/* Savings Account */}
-            <div className="bg-gray-900 text-white rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold">Savings Account</h4>
-                <span className="text-cyan-400 text-sm">📈 2.36%</span>
-              </div>
-              <div className="mb-6">
-                <p className="text-sm text-gray-400 mb-1">Available balance</p>
-                <p className="text-3xl font-bold">£8,000.00</p>
-              </div>
-              <div className="border-t border-gray-700 pt-4 space-y-2">
-                <div>
-                  <p className="text-sm text-gray-400">IBAN</p>
-                  <p className="font-medium">AB11 0000 0000 1111 1111</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Account owner</p>
-                  <p className="font-medium">Nicola Rich</p>
-                </div>
-              </div>
-              <button className="w-full mt-6 py-3 bg-purple-200 text-gray-900 rounded-lg font-medium hover:bg-purple-300 transition">
-                See details
-              </button>
-            </div>
-
-            {/* Budget Account */}
-            <div className="bg-gray-900 text-white rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold">Budget Account</h4>
-                <span className="text-cyan-400 text-sm">📈 2.36%</span>
-              </div>
-              <div className="mb-6">
-                <p className="text-sm text-gray-400 mb-1">Available balance</p>
-                <p className="text-3xl font-bold">£2,000.00</p>
-              </div>
-              <div className="border-t border-gray-700 pt-4 space-y-2">
-                <div>
-                  <p className="text-sm text-gray-400">IBAN</p>
-                  <p className="font-medium">AB11 0000 0000 1111 1111</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Account owner</p>
-                  <p className="font-medium">Nicola Rich</p>
-                </div>
-              </div>
-              <button className="w-full mt-6 py-3 bg-purple-200 text-gray-900 rounded-lg font-medium hover:bg-purple-300 transition">
-                See details
-              </button>
-            </div>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gray-900">My accounts</h3>
+            <span className="text-sm text-gray-600">{accounts.length} {accounts.length === 1 ? 'account' : 'accounts'}</span>
           </div>
+          {accounts.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+              <p className="text-gray-500 mb-2">No accounts found</p>
+              <p className="text-sm text-gray-400">Contact admin to create an account</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-6">
+              {accounts.map((account) => (
+                <div key={account._id} className="bg-gray-900 text-white rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold">{account.accountName}</h4>
+                    {account.interestRate && (
+                      <span className="text-cyan-400 text-sm">📈 {account.interestRate}%</span>
+                    )}
+                  </div>
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-400 mb-1">Available balance</p>
+                    <p className="text-3xl font-bold">{formatCurrency(account.balance, account.currency)}</p>
+                    <p className="text-xs text-gray-400 mt-1">{account.accountType}</p>
+                  </div>
+                  <div className="border-t border-gray-700 pt-4 space-y-2">
+                    {account.iban && (
+                      <div>
+                        <p className="text-sm text-gray-400">IBAN</p>
+                        <p className="font-medium text-sm">{account.iban}</p>
+                      </div>
+                    )}
+                    {account.accountNumber && (
+                      <div>
+                        <p className="text-sm text-gray-400">Account Number</p>
+                        <p className="font-medium">{account.accountNumber}</p>
+                      </div>
+                    )}
+                    {account.sortCode && (
+                      <div>
+                        <p className="text-sm text-gray-400">Sort Code</p>
+                        <p className="font-medium">{account.sortCode}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-400">Account owner</p>
+                      <p className="font-medium">{user?.firstName} {user?.lastName}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* My Cards */}
         <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">My cards</h3>
-          <div className="grid grid-cols-2 gap-8">
-            {/* Credit Card */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-orange-300 to-orange-400 rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="w-12 h-8 bg-yellow-300 rounded"></div>
-                  <div className="text-2xl">💳</div>
-                </div>
-                <p className="text-sm mb-2">Available Balance</p>
-                <p className="text-2xl font-bold mb-8">£10,000.00</p>
-                <div className="space-y-1">
-                  <p className="text-sm">1111 0000 1100 0000</p>
-                  <div className="flex justify-between">
-                    <p className="text-sm">Nicola Rich</p>
-                    <p className="text-sm">12/24</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Credit Card</h4>
-                <div className="border-t border-gray-200 pt-4 space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-500">Type</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="font-medium text-gray-900">Physical</p>
-                      <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                        <span className="w-2 h-2 bg-green-600 rounded-full"></span> Active
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Card number</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="font-medium text-gray-900">1111 0000 1100 0000</p>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Expiration date</p>
-                    <p className="font-medium text-gray-900 mt-1">12/24</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">CVV</p>
-                    <p className="font-medium text-gray-900 mt-1">***</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Debit Card */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-blue-300 to-blue-400 rounded-2xl p-6 text-white">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="w-12 h-8 bg-blue-200 rounded"></div>
-                  <div className="text-2xl">💳</div>
-                </div>
-                <p className="text-sm mb-2">Available Balance</p>
-                <p className="text-2xl font-bold mb-8">£8,500.00</p>
-                <div className="space-y-1">
-                  <p className="text-sm">1111 **** **** 0000</p>
-                  <div className="flex justify-between">
-                    <p className="text-sm">Nicola Rich</p>
-                    <p className="text-sm">12/24</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Debit Card</h4>
-                <div className="border-t border-gray-200 pt-4 space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-500">Type</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="font-medium text-gray-900">Physical</p>
-                      <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                        <span className="w-2 h-2 bg-green-600 rounded-full"></span> Active
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Card number</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="font-medium text-gray-900">1111 **** **** 0000</p>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Expiration date</p>
-                    <p className="font-medium text-gray-900 mt-1">12/24</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">CVV</p>
-                    <p className="font-medium text-gray-900 mt-1">***</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gray-900">My cards</h3>
+            <span className="text-sm text-gray-600">{cards.length} {cards.length === 1 ? 'card' : 'cards'}</span>
           </div>
+          {cards.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+              <p className="text-gray-500 mb-2">No cards found</p>
+              <p className="text-sm text-gray-400">Contact admin to issue a card</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-8">
+              {cards.map((card, index) => {
+                const cardColors = [
+                  'from-orange-300 to-orange-400',
+                  'from-blue-300 to-blue-400',
+                  'from-purple-300 to-purple-400',
+                  'from-green-300 to-green-400',
+                ];
+                const cardColor = cardColors[index % cardColors.length];
+                
+                return (
+                  <div key={card._id} className="grid grid-cols-2 gap-6">
+                    <div className={`bg-gradient-to-br ${cardColor} rounded-2xl p-6 text-white`}>
+                      <div className="flex items-center justify-between mb-8">
+                        <div className="w-12 h-8 bg-white bg-opacity-30 rounded"></div>
+                        <div className="text-2xl">💳</div>
+                      </div>
+                      <p className="text-sm mb-2">Daily Limit</p>
+                      <p className="text-2xl font-bold mb-8">£{Number(card.limit || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <div className="space-y-1">
+                        <p className="text-sm font-mono">**** **** **** {card.cardNumber.slice(-4)}</p>
+                        <div className="flex justify-between">
+                          <p className="text-sm">{card.cardHolderName}</p>
+                          <p className="text-sm">{card.expiryDate}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">{card.cardType}</h4>
+                      <div className="border-t border-gray-200 pt-4 space-y-3">
+                        <div>
+                          <p className="text-sm text-gray-500">Status</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`inline-flex items-center gap-1 text-xs ${
+                              card.status === 'Active' ? 'text-green-600' :
+                              card.status === 'Blocked' ? 'text-yellow-600' :
+                              'text-red-600'
+                            }`}>
+                              <span className={`w-2 h-2 rounded-full ${
+                                card.status === 'Active' ? 'bg-green-600' :
+                                card.status === 'Blocked' ? 'bg-yellow-600' :
+                                'bg-red-600'
+                              }`}></span> {card.status}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Card Holder</p>
+                          <p className="font-medium text-gray-900 mt-1">{card.cardHolderName}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Card number</p>
+                          <p className="font-medium text-gray-900 mt-1 font-mono">**** **** **** {card.cardNumber.slice(-4)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Expiration date</p>
+                          <p className="font-medium text-gray-900 mt-1">{card.expiryDate}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">CVV</p>
+                          <p className="font-medium text-gray-900 mt-1">***</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </main>
     </div>
