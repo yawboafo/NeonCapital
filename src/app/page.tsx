@@ -132,7 +132,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-6 md:p-8 shadow-lg">
             <p className="mb-3 md:mb-4 text-zinc-700 dark:text-zinc-300 text-sm md:text-base">"Neon Capital has transformed how I manage my finances. Their online banking platform is seamless and secure!"</p>
-            <span className="font-bold text-blue-900 dark:text-blue-300 text-sm md:text-base">Sarah M. - New York</span>
+            <span className="font-bold text-blue-900 dark:text-blue-300 text-sm md:text-base">Sarah M. - London</span>
           </div>
           <div className="bg-white/90 dark:bg-zinc-900 rounded-xl p-6 md:p-8 shadow-lg">
             <p className="mb-3 md:mb-4 text-zinc-700 dark:text-zinc-300 text-sm md:text-base">"Excellent customer service and competitive rates. I've been banking with them for 5 years and couldn't be happier."</p>
@@ -156,7 +156,7 @@ export default function Home() {
             <Image src="/bank-logo.svg" alt="Neon Capital Logo" width={32} height={32} />
             <span className="font-bold text-base md:text-lg">Neon Capital</span>
           </div>
-          <div className="text-xs sm:text-sm">contact@neoncapital.com | 123 Finance Avenue, New York, NY</div>
+          <div className="text-xs sm:text-sm">contact@neoncapital.com | 85 King William St, London EC4N 7BL</div>
           <div className="text-xs sm:text-sm">© 2025 Neon Capital. All Rights Reserved.</div>
         </div>
       </footer>

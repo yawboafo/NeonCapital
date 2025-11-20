@@ -58,9 +58,9 @@ const team = [
 ];
 
 const timeline = [
-  { year: "2010", event: "Neon Capital Bank founded with a vision to revolutionize modern banking" },
+  { year: "2010", event: "Neon Capital Bank founded in London with a vision to revolutionize modern banking" },
   { year: "2013", event: "Launched first mobile banking app with biometric authentication" },
-  { year: "2016", event: "Expanded to 50,000 customers and opened 5 branch locations" },
+  { year: "2016", event: "Expanded to 50,000 customers and opened 5 branch locations across the UK" },
   { year: "2019", event: "Introduced AI-powered financial advisory services" },
   { year: "2022", event: "Achieved carbon-neutral operations and $2B in assets" },
   { year: "2025", event: "Leading digital-first banking with 100% uptime and award-winning service" }
@@ -94,10 +94,10 @@ export default function About() {
               <div className="p-8 md:p-12 flex flex-col justify-center">
                 <h2 className="text-3xl font-bold text-blue-900 dark:text-blue-300 mb-4">Our Story</h2>
                 <p className="text-zinc-700 dark:text-zinc-300 mb-4 leading-relaxed">
-                  Founded in 2010, Neon Capital Bank emerged from a simple belief: banking should be accessible, transparent, and empowering for everyone. What started as a small team with big ambitions has grown into a trusted financial institution serving over 50,000 customers worldwide.
+                  Founded in 2010 in the heart of London's financial district, Neon Capital Bank emerged from a simple belief: banking should be accessible, transparent, and empowering for everyone. What started as a small team with big ambitions has grown into a trusted financial institution serving over 50,000 customers worldwide.
                 </p>
                 <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                  We combine the reliability and security of traditional banking with the convenience and innovation of modern technology. Our mission is to provide exceptional financial services that help individuals and businesses thrive in an ever-changing economy.
+                  Headquartered at 85 King William Street, London EC4N 7BL, we combine the reliability and security of traditional banking with the convenience and innovation of modern technology. Our mission is to provide exceptional financial services that help individuals and businesses thrive in an ever-changing economy.
                 </p>
               </div>
             </div>
