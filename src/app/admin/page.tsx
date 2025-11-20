@@ -1334,7 +1334,146 @@ function TransactionManagement() {
 
 // Investment Management Component
 function InvestmentManagement() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [investments, setInvestments] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingInvestment, setEditingInvestment] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    userId: "",
+    assetName: "",
+    assetType: "Stocks",
+    quantity: "",
+    purchasePrice: "",
+    currentPrice: "",
+    purchaseDate: "",
+  });
+
+  useEffect(() => {
+    fetchUsers();
+    fetchInvestments();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+      if (data.success) setUsers(data.users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchInvestments = async () => {
+    try {
+      const response = await fetch("/api/investments");
+      const data = await response.json();
+      if (data.success) setInvestments(data.investments);
+    } catch (error) {
+      console.error("Error fetching investments:", error);
+    }
+  };
+
+  const getUserName = (userId: string) => {
+    const user = users.find((u) => u._id === userId);
+    return user ? `${user.firstName} ${user.lastName}` : "Unknown User";
+  };
+
+  const calculateReturn = (purchasePrice: number, currentPrice: number, quantity: number) => {
+    const invested = purchasePrice * quantity;
+    const current = currentPrice * quantity;
+    const gain = current - invested;
+    const percentage = ((gain / invested) * 100).toFixed(2);
+    return { gain, percentage };
+  };
+
+  const handleCreateInvestment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch("/api/investments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          quantity: parseFloat(formData.quantity),
+          purchasePrice: parseFloat(formData.purchasePrice),
+          currentPrice: parseFloat(formData.currentPrice),
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFormData({ userId: "", assetName: "", assetType: "Stocks", quantity: "", purchasePrice: "", currentPrice: "", purchaseDate: "" });
+        setShowCreateForm(false);
+        fetchInvestments();
+      }
+    } catch (error) {
+      console.error("Error creating investment:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditInvestment = (investment: any) => {
+    setEditingInvestment(investment);
+    setFormData({
+      userId: investment.userId,
+      assetName: investment.assetName,
+      assetType: investment.assetType,
+      quantity: investment.quantity.toString(),
+      purchasePrice: investment.purchasePrice.toString(),
+      currentPrice: investment.currentPrice.toString(),
+      purchaseDate: investment.purchaseDate.split("T")[0],
+    });
+    setShowEditForm(true);
+    setShowCreateForm(false);
+  };
+
+  const handleUpdateInvestment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingInvestment) return;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/investments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          investmentId: editingInvestment._id,
+          ...formData,
+          quantity: parseFloat(formData.quantity),
+          purchasePrice: parseFloat(formData.purchasePrice),
+          currentPrice: parseFloat(formData.currentPrice),
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFormData({ userId: "", assetName: "", assetType: "Stocks", quantity: "", purchasePrice: "", currentPrice: "", purchaseDate: "" });
+        setShowEditForm(false);
+        setEditingInvestment(null);
+        fetchInvestments();
+      }
+    } catch (error) {
+      console.error("Error updating investment:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteInvestment = async (investmentId: string) => {
+    if (!confirm("Delete this investment?")) return;
+    try {
+      const response = await fetch("/api/investments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ investmentId }),
+      });
+      const data = await response.json();
+      if (data.success) fetchInvestments();
+    } catch (error) {
+      console.error("Error deleting investment:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1342,7 +1481,7 @@ function InvestmentManagement() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Investment Management</h2>
           <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => { setShowCreateForm(!showCreateForm); setShowEditForm(false); }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             {showCreateForm ? "Cancel" : "+ Add Investment"}
@@ -1350,105 +1489,163 @@ function InvestmentManagement() {
         </div>
 
         {showCreateForm && (
-          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <form onSubmit={handleCreateInvestment} className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Investment</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">User Account</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>John Doe - Investment Account</option>
-                  <option>Jane Smith - Investment Account</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Investment Type</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Stocks</option>
-                  <option>Bonds</option>
-                  <option>Mutual Funds</option>
-                  <option>ETF</option>
-                  <option>Cryptocurrency</option>
+                <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <select value={formData.userId} onChange={(e) => setFormData({ ...formData, userId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="">Select User</option>
+                  {users.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.firstName} {user.lastName}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Asset Name</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Apple Inc." />
+                <input type="text" value={formData.assetName} onChange={(e) => setFormData({ ...formData, assetName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Apple Inc." required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Ticker Symbol</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="AAPL" />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Asset Type</label>
+                <select value={formData.assetType} onChange={(e) => setFormData({ ...formData, assetType: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Stocks">Stocks</option>
+                  <option value="Bonds">Bonds</option>
+                  <option value="Mutual Funds">Mutual Funds</option>
+                  <option value="ETF">ETF</option>
+                  <option value="Cryptocurrency">Cryptocurrency</option>
+                  <option value="Real Estate">Real Estate</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
-                <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="10" />
+                <input type="number" step="0.01" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="10" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Price (per unit)</label>
-                <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="150.00" />
+                <input type="number" step="0.01" value={formData.purchasePrice} onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="150.00" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Current Price (per unit)</label>
-                <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="180.00" />
+                <input type="number" step="0.01" value={formData.currentPrice} onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="180.00" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Date</label>
-                <input type="date" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Platform/Broker</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Interactive Brokers" />
+                <input type="date" value={formData.purchaseDate} onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
               </div>
             </div>
             <div className="mt-6 flex gap-3">
-              <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                Add Investment
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {loading ? "Adding..." : "Add Investment"}
               </button>
-              <button onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+              <button type="button" onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium">
                 Cancel
               </button>
             </div>
-          </div>
+          </form>
         )}
 
-        {/* Investments List */}
+        {showEditForm && editingInvestment && (
+          <form onSubmit={handleUpdateInvestment} className="bg-blue-50 p-6 rounded-lg mb-6 border-2 border-blue-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Investment</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <select value={formData.userId} onChange={(e) => setFormData({ ...formData, userId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="">Select User</option>
+                  {users.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.firstName} {user.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Asset Name</label>
+                <input type="text" value={formData.assetName} onChange={(e) => setFormData({ ...formData, assetName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Asset Type</label>
+                <select value={formData.assetType} onChange={(e) => setFormData({ ...formData, assetType: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Stocks">Stocks</option>
+                  <option value="Bonds">Bonds</option>
+                  <option value="Mutual Funds">Mutual Funds</option>
+                  <option value="ETF">ETF</option>
+                  <option value="Cryptocurrency">Cryptocurrency</option>
+                  <option value="Real Estate">Real Estate</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                <input type="number" step="0.01" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Price (per unit)</label>
+                <input type="number" step="0.01" value={formData.purchasePrice} onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Current Price (per unit)</label>
+                <input type="number" step="0.01" value={formData.currentPrice} onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Date</label>
+                <input type="date" value={formData.purchaseDate} onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {loading ? "Updating..." : "Update Investment"}
+              </button>
+              <button type="button" onClick={() => { setShowEditForm(false); setEditingInvestment(null); }} className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium">
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Return</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {[
-                { user: "John Doe", asset: "Apple Inc. (AAPL)", type: "Stocks", qty: "10", value: "£1,800.00", return: "+20%" },
-                { user: "John Doe", asset: "S&P 500 ETF", type: "ETF", qty: "50", value: "£5,500.00", return: "+12%" },
-                { user: "Jane Smith", asset: "Tesla (TSLA)", type: "Stocks", qty: "5", value: "£1,200.00", return: "-8%" },
-              ].map((investment, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{investment.user}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{investment.asset}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{investment.type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{investment.qty}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{investment.value}</td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                    investment.return.startsWith("+") ? "text-green-600" : "text-red-600"
-                  }`}>
-                    {investment.return}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                    <button className="text-red-600 hover:text-red-900">Sell</button>
-                  </td>
+          {investments.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">No investments found. Add one to get started.</div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Value</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gain/Loss</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {investments.map((investment) => {
+                  const { gain, percentage } = calculateReturn(investment.purchasePrice, investment.currentPrice, investment.quantity);
+                  const currentValue = investment.currentPrice * investment.quantity;
+                  return (
+                    <tr key={investment._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getUserName(investment.userId)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{investment.assetName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{investment.assetType}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{investment.quantity}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">£{currentValue.toFixed(2)}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
+                        gain >= 0 ? "text-green-600" : "text-red-600"
+                      }`}>
+                        {gain >= 0 ? "+" : ""}£{gain.toFixed(2)} ({percentage}%)
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onClick={() => handleEditInvestment(investment)} className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button onClick={() => handleDeleteInvestment(investment._id)} className="text-red-600 hover:text-red-900">Delete</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
