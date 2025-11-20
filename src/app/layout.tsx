@@ -42,7 +42,6 @@ export default function RootLayout({
               </nav>
               <div className="flex gap-2">
                 <a href="/login" className="px-6 py-2 rounded-full bg-blue-700 text-white font-bold shadow hover:bg-blue-800 transition">LOGIN</a>
-                <a href="/register" className="px-6 py-2 rounded-full bg-yellow-400 text-blue-900 font-bold shadow hover:bg-yellow-500 transition">REGISTER</a>
               </div>
             </div>
           </header>
