@@ -1,5 +1,6 @@
+"use client";
 
-
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 const accountTypes = [
@@ -29,22 +30,146 @@ const accountTypes = [
   },
 ];
 
+const slides = [
+  {
+    title: "Welcome to Neon Capital Bank",
+    description: "Your trusted partner for personal and business banking. Experience security, service, and innovation.",
+    buttonText: "Login to Your Account",
+    buttonLink: "/login",
+    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=500&q=80",
+    imageAlt: "Professional Bankers"
+  },
+  {
+    title: "Digital Banking Made Simple",
+    description: "Manage your finances anytime, anywhere with our award-winning mobile app and online banking platform.",
+    buttonText: "Explore Digital Services",
+    buttonLink: "/products",
+    image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=500&q=80",
+    imageAlt: "Mobile Banking"
+  },
+  {
+    title: "Competitive Rates & Rewards",
+    description: "Earn up to 2.5% APY on savings accounts. Get cashback on every purchase with our premium credit cards.",
+    buttonText: "View Promotions",
+    buttonLink: "/promotions",
+    image: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=500&q=80",
+    imageAlt: "Savings & Rewards"
+  },
+  {
+    title: "Business Banking Solutions",
+    description: "Grow your business with tailored banking services, merchant solutions, and dedicated account managers.",
+    buttonText: "Learn More",
+    buttonLink: "/products",
+    image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=500&q=80",
+    imageAlt: "Business Banking"
+  }
+];
+
 export default function Home() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-blue-400 font-sans text-zinc-900 dark:text-zinc-100">
 
-      {/* Hero Section - Modern Banking Look */}
-      <section className="relative w-full bg-gradient-to-r from-blue-900 via-blue-700 to-blue-400 py-12 md:py-20 px-4 md:px-6 flex flex-col md:flex-row items-center justify-between max-w-7xl mx-auto gap-8">
-        <div className="flex-1 z-10 flex flex-col justify-center text-center md:text-left">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 md:mb-6 text-white drop-shadow-lg leading-tight">Welcome to Neon Capital Bank</h1>
-          <p className="text-lg sm:text-xl md:text-2xl mb-6 md:mb-8 text-blue-100 font-medium">Your trusted partner for personal and business banking. Experience security, service, and innovation.</p>
-          <div className="flex justify-center md:justify-start">
-            <a href="/login" className="inline-block px-6 sm:px-8 md:px-10 py-3 md:py-4 rounded-full bg-white text-blue-900 font-bold text-base sm:text-lg md:text-xl shadow-lg hover:bg-blue-50 transition">Login to Your Account</a>
+      {/* Hero Section - Slider */}
+      <section className="relative w-full bg-gradient-to-r from-blue-900 via-blue-700 to-blue-400 py-12 md:py-20 px-4 md:px-6 max-w-7xl mx-auto overflow-hidden">
+        <div className="relative">
+          {/* Slides */}
+          <div className="relative h-[500px] md:h-[400px]">
+            {slides.map((slide, index) => (
+              <div
+                key={index}
+                className={`absolute inset-0 transition-opacity duration-700 ${
+                  index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                }`}
+              >
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8 h-full">
+                  <div className="flex-1 z-10 flex flex-col justify-center text-center md:text-left">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 md:mb-6 text-white drop-shadow-lg leading-tight">
+                      {slide.title}
+                    </h1>
+                    <p className="text-lg sm:text-xl md:text-2xl mb-6 md:mb-8 text-blue-100 font-medium">
+                      {slide.description}
+                    </p>
+                    <div className="flex justify-center md:justify-start">
+                      <a 
+                        href={slide.buttonLink} 
+                        className="inline-block px-6 sm:px-8 md:px-10 py-3 md:py-4 rounded-full bg-white text-blue-900 font-bold text-base sm:text-lg md:text-xl shadow-lg hover:bg-blue-50 transition"
+                      >
+                        {slide.buttonText}
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex-1 flex justify-center z-10 w-full md:w-auto">
+                    <Image 
+                      src={slide.image} 
+                      alt={slide.imageAlt} 
+                      width={400} 
+                      height={400} 
+                      className="rounded-xl shadow-2xl object-cover w-full max-w-xs sm:max-w-sm md:max-w-md" 
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Navigation Arrows */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 md:p-3 rounded-r-lg backdrop-blur-sm transition"
+            aria-label="Previous slide"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 md:p-3 rounded-l-lg backdrop-blur-sm transition"
+            aria-label="Next slide"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          {/* Dots Navigation */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  index === currentSlide 
+                    ? 'bg-white w-8' 
+                    : 'bg-white/50 hover:bg-white/75'
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
           </div>
         </div>
-        <div className="flex-1 flex justify-center z-10 w-full md:w-auto">
-          <Image src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=500&q=80" alt="Professional Bankers" width={400} height={400} className="rounded-xl shadow-2xl object-cover w-full max-w-xs sm:max-w-sm md:max-w-md" />
-        </div>
+
         {/* Decorative background image placeholder */}
         <div className="absolute inset-0 opacity-10 bg-[url('/hero-bg.svg')] bg-cover bg-center pointer-events-none" />
       </section>
