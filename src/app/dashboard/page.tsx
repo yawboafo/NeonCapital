@@ -14,6 +14,8 @@ export default function Dashboard() {
   const [investments, setInvestments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [cryptoPrices, setCryptoPrices] = useState<any[]>([]);
+  const [cryptoLoading, setCryptoLoading] = useState(true);
   const [transferForm, setTransferForm] = useState({
     accountId: '',
     recipientName: '',
@@ -34,6 +36,13 @@ export default function Dashboard() {
 
     // Fetch user's data
     fetchUserData(parsedUser._id);
+    
+    // Fetch crypto prices
+    fetchCryptoPrices();
+    
+    // Update crypto prices every 30 seconds
+    const interval = setInterval(fetchCryptoPrices, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchUserData = async (userId: string) => {
@@ -57,6 +66,79 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error fetching user data:', error);
       setLoading(false);
+    }
+  };
+
+  const fetchCryptoPrices = async () => {
+    try {
+      // Using CoinGecko API (free, no API key needed)
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,ripple,cardano,solana&vs_currencies=usd,gbp&include_24hr_change=true'
+      );
+      const data = await response.json();
+      
+      const cryptoList = [
+        { 
+          id: 'bitcoin', 
+          name: 'Bitcoin', 
+          symbol: 'BTC', 
+          price: data.bitcoin?.usd || 0,
+          priceGbp: data.bitcoin?.gbp || 0,
+          change: data.bitcoin?.usd_24h_change || 0,
+          icon: '₿'
+        },
+        { 
+          id: 'ethereum', 
+          name: 'Ethereum', 
+          symbol: 'ETH', 
+          price: data.ethereum?.usd || 0,
+          priceGbp: data.ethereum?.gbp || 0,
+          change: data.ethereum?.usd_24h_change || 0,
+          icon: 'Ξ'
+        },
+        { 
+          id: 'binancecoin', 
+          name: 'BNB', 
+          symbol: 'BNB', 
+          price: data.binancecoin?.usd || 0,
+          priceGbp: data.binancecoin?.gbp || 0,
+          change: data.binancecoin?.usd_24h_change || 0,
+          icon: '🔶'
+        },
+        { 
+          id: 'ripple', 
+          name: 'XRP', 
+          symbol: 'XRP', 
+          price: data.ripple?.usd || 0,
+          priceGbp: data.ripple?.gbp || 0,
+          change: data.ripple?.usd_24h_change || 0,
+          icon: '⚡'
+        },
+        { 
+          id: 'cardano', 
+          name: 'Cardano', 
+          symbol: 'ADA', 
+          price: data.cardano?.usd || 0,
+          priceGbp: data.cardano?.gbp || 0,
+          change: data.cardano?.usd_24h_change || 0,
+          icon: '◈'
+        },
+        { 
+          id: 'solana', 
+          name: 'Solana', 
+          symbol: 'SOL', 
+          price: data.solana?.usd || 0,
+          priceGbp: data.solana?.gbp || 0,
+          change: data.solana?.usd_24h_change || 0,
+          icon: '◎'
+        },
+      ];
+      
+      setCryptoPrices(cryptoList);
+      setCryptoLoading(false);
+    } catch (error) {
+      console.error('Error fetching crypto prices:', error);
+      setCryptoLoading(false);
     }
   };
 
@@ -326,86 +408,69 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Statistics and Transactions */}
+        {/* Live Crypto Prices and Transactions */}
         <div className="grid grid-cols-3 gap-6 mb-8">
-          {/* Statistics Chart */}
-          <div className="col-span-2 bg-gray-900 rounded-2xl p-6">
+          {/* Live Crypto Prices */}
+          <div className="col-span-2 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-white">Statistics</h3>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-2 text-white">
-                  <span className="w-3 h-3 bg-pink-500 rounded-full"></span> Expenses
-                </span>
-                <span className="flex items-center gap-2 text-white">
-                  <span className="w-3 h-3 bg-green-400 rounded-full"></span> Income
-                </span>
-                <select className="bg-gray-800 text-white px-3 py-1.5 rounded-lg border border-gray-700 text-sm">
-                  <option>Last 7 days</option>
-                  <option>Last 30 days</option>
-                  <option>Last 90 days</option>
-                </select>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Live Crypto Prices</h3>
+                <p className="text-gray-400 text-xs mt-1">Real-time cryptocurrency market data • Updates every 30s</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-green-400 text-xs font-medium">LIVE</span>
               </div>
             </div>
             
-            {/* Chart Grid Lines */}
-            <div className="relative h-64">
-              {/* Horizontal grid lines */}
-              <div className="absolute inset-0 flex flex-col justify-between">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <div key={i} className="border-t border-gray-800"></div>
-                ))}
+            {cryptoLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-white text-sm">Loading crypto prices...</div>
               </div>
-              
-              {/* Y-axis labels */}
-              <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-gray-500 text-xs -ml-8">
-                <span>3K</span>
-                <span>2K</span>
-                <span>1K</span>
-                <span>0</span>
-              </div>
-              
-              {/* Bars */}
-              <div className="relative h-full flex items-end justify-between gap-4 px-2">
-                {[
-                  { expenses: 65, income: 85 },
-                  { expenses: 45, income: 92 },
-                  { expenses: 58, income: 70 },
-                  { expenses: 72, income: 48 },
-                  { expenses: 52, income: 88 },
-                  { expenses: 38, income: 62 },
-                  { expenses: 78, income: 95 },
-                ].map((day, i) => (
-                  <div key={i} className="flex-1 flex gap-2 items-end h-full group">
-                    <div 
-                      className="flex-1 bg-gradient-to-t from-pink-500 to-pink-400 rounded-t-lg shadow-lg transition-all duration-300 hover:opacity-80 relative"
-                      style={{ height: `${day.expenses}%` }}
-                    >
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        £{(day.expenses * 30).toFixed(0)}
+            ) : (
+              <div className="space-y-3">
+                {cryptoPrices.map((crypto) => (
+                  <div 
+                    key={crypto.id} 
+                    className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 hover:bg-opacity-20 transition-all duration-300 border border-white border-opacity-10"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-2xl">
+                          {crypto.icon}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">{crypto.name}</p>
+                          <p className="text-gray-400 text-xs">{crypto.symbol}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div 
-                      className="flex-1 bg-gradient-to-t from-green-400 to-green-300 rounded-t-lg shadow-lg transition-all duration-300 hover:opacity-80 relative"
-                      style={{ height: `${day.income}%` }}
-                    >
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        £{(day.income * 30).toFixed(0)}
+                      <div className="text-right">
+                        <p className="font-bold text-white text-lg">
+                          ${crypto.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-gray-400 text-xs">
+                          £{crypto.priceGbp.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="text-right ml-4">
+                        <div className={`flex items-center gap-1 ${crypto.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          <span className="text-lg">{crypto.change >= 0 ? '▲' : '▼'}</span>
+                          <span className="font-semibold">
+                            {Math.abs(crypto.change).toFixed(2)}%
+                          </span>
+                        </div>
+                        <p className="text-gray-400 text-xs">24h</p>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
             
-            {/* X-axis labels */}
-            <div className="flex justify-between mt-4 text-gray-400 text-xs px-2">
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat</span>
-              <span>Sun</span>
+            <div className="mt-4 pt-4 border-t border-white border-opacity-10">
+              <p className="text-gray-400 text-xs text-center">
+                Data provided by CoinGecko • Market cap in USD
+              </p>
             </div>
           </div>
 
