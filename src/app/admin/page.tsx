@@ -1108,7 +1108,104 @@ function TransferManagement() {
 
 // Transaction Management Component
 function TransactionManagement() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    accountId: "",
+    type: "expense",
+    category: "Groceries",
+    merchantName: "",
+    amount: "",
+    description: "",
+  });
+
+  useEffect(() => {
+    fetchUsers();
+    fetchAccounts();
+    fetchTransactions();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+      if (data.success) setUsers(data.users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch("/api/accounts");
+      const data = await response.json();
+      if (data.success) setAccounts(data.accounts);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      const response = await fetch("/api/transactions");
+      const data = await response.json();
+      if (data.success) setTransactions(data.transactions);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    }
+  };
+
+  const getAccountInfo = (accountId: string) => {
+    const account = accounts.find((a) => a._id === accountId);
+    if (!account) return "Unknown Account";
+    const user = users.find((u) => u._id === account.userId);
+    const userName = user ? `${user.firstName} ${user.lastName}` : "Unknown User";
+    return `${userName} - ${account.accountName}`;
+  };
+
+  const handleCreateTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, amount: parseFloat(formData.amount) }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFormData({ accountId: "", type: "expense", category: "Groceries", merchantName: "", amount: "", description: "" });
+        setShowCreateForm(false);
+        fetchTransactions();
+        fetchAccounts(); // Refresh to update balances
+      }
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    if (!confirm("Delete this transaction?")) return;
+    try {
+      const response = await fetch("/api/transactions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchTransactions();
+        fetchAccounts(); // Refresh to update balances
+      }
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1124,106 +1221,111 @@ function TransactionManagement() {
         </div>
 
         {showCreateForm && (
-          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <form onSubmit={handleCreateTransaction} className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Transaction</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Account</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>John Doe - Checking (£10,000.00)</option>
-                  <option>John Doe - Savings (£8,000.00)</option>
-                  <option>Jane Smith - Checking (£15,500.00)</option>
+                <select value={formData.accountId} onChange={(e) => setFormData({ ...formData, accountId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="">Select Account</option>
+                  {accounts.map((account) => {
+                    const user = users.find((u) => u._id === account.userId);
+                    const userName = user ? `${user.firstName} ${user.lastName}` : "Unknown";
+                    return (
+                      <option key={account._id} value={account._id}>
+                        {userName} - {account.accountName} ({account.currency === "GBP" && "£"}{account.currency === "USD" && "$"}{account.currency === "EUR" && "€"}{account.balance.toFixed(2)})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Type</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Expense</option>
-                  <option>Income</option>
-                  <option>Transfer</option>
+                <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>Groceries</option>
-                  <option>Restaurant</option>
-                  <option>Shopping</option>
-                  <option>Transport</option>
-                  <option>Utilities</option>
-                  <option>Salary</option>
-                  <option>Other</option>
+                <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Groceries">Groceries</option>
+                  <option value="Restaurant">Restaurant</option>
+                  <option value="Shopping">Shopping</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Utilities">Utilities</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Merchant Name</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Store Name" />
+                <input type="text" value={formData.merchantName} onChange={(e) => setFormData({ ...formData, merchantName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Store Name" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
-                <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Date</label>
-                <input type="date" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                <input type="time" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="0.00" required />
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Transaction description" />
+                <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Transaction description" />
               </div>
             </div>
             <div className="mt-6 flex gap-3">
-              <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                Add Transaction
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {loading ? "Adding..." : "Add Transaction"}
               </button>
-              <button onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+              <button type="button" onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium">
                 Cancel
               </button>
             </div>
-          </div>
+          </form>
         )}
 
-        {/* Transactions List */}
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {[
-                { date: "2025-11-19", account: "John Doe - Checking", merchant: "Tesco", category: "Groceries", amount: "-£92.50", type: "expense" },
-                { date: "2025-11-19", account: "Jane Smith - Checking", merchant: "Amazon", category: "Shopping", amount: "-£156.00", type: "expense" },
-                { date: "2025-11-18", account: "John Doe - Checking", merchant: "Salary Deposit", category: "Income", amount: "+£3,000.00", type: "income" },
-              ].map((transaction, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transaction.account}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transaction.merchant}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.category}</td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                    transaction.type === "income" ? "text-green-600" : "text-red-600"
-                  }`}>
-                    {transaction.amount}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                    <button className="text-red-600 hover:text-red-900">Delete</button>
-                  </td>
+          {transactions.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">No transactions found. Add one to get started.</div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {transactions.map((transaction) => {
+                  const account = accounts.find((a) => a._id === transaction.accountId);
+                  return (
+                    <tr key={transaction._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getAccountInfo(transaction.accountId)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transaction.merchantName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.category}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{transaction.description || "-"}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
+                        transaction.type === "income" ? "text-green-600" : "text-red-600"
+                      }`}>
+                        {transaction.type === "income" ? "+" : "-"}
+                        {account?.currency === "GBP" && "£"}{account?.currency === "USD" && "$"}{account?.currency === "EUR" && "€"}
+                        {transaction.amount.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onClick={() => handleDeleteTransaction(transaction._id)} className="text-red-600 hover:text-red-900">Delete</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
