@@ -88,6 +88,104 @@ export default function Dashboard() {
       .slice(0, 5);
   };
 
+  const calculateSpendingByCategory = () => {
+    // Get current month's expense transactions
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const monthlyExpenses = transactions.filter(t => {
+      const transactionDate = new Date(t.createdAt);
+      return t.type === 'expense' && 
+             transactionDate.getMonth() === currentMonth && 
+             transactionDate.getFullYear() === currentYear;
+    });
+
+    // Define category mappings with colors
+    const categoryMap: { [key: string]: { label: string; color: string; keywords: string[] } } = {
+      'groceries': { 
+        label: 'Groceries & Food', 
+        color: 'bg-blue-600',
+        keywords: ['grocery', 'groceries', 'food', 'restaurant', 'dining', 'supermarket', 'market']
+      },
+      'bills': { 
+        label: 'Bills & Utilities', 
+        color: 'bg-green-600',
+        keywords: ['bill', 'bills', 'utility', 'utilities', 'electricity', 'water', 'gas', 'internet', 'phone']
+      },
+      'shopping': { 
+        label: 'Shopping & Retail', 
+        color: 'bg-purple-600',
+        keywords: ['shopping', 'retail', 'clothing', 'fashion', 'store', 'mall', 'purchase']
+      },
+      'entertainment': { 
+        label: 'Entertainment', 
+        color: 'bg-yellow-600',
+        keywords: ['entertainment', 'movie', 'cinema', 'game', 'sport', 'subscription', 'streaming', 'netflix', 'spotify']
+      },
+      'transport': { 
+        label: 'Transport', 
+        color: 'bg-red-600',
+        keywords: ['transport', 'transportation', 'uber', 'taxi', 'gas', 'fuel', 'parking', 'bus', 'train']
+      },
+      'other': { 
+        label: 'Other', 
+        color: 'bg-gray-600',
+        keywords: []
+      }
+    };
+
+    // Calculate spending by category
+    const categoryTotals: { [key: string]: number } = {};
+    let totalExpenses = 0;
+
+    monthlyExpenses.forEach(t => {
+      const amount = Math.abs(t.amount || 0);
+      totalExpenses += amount;
+
+      // Determine category from transaction category or merchant name
+      let categoryKey = 'other';
+      const searchText = `${t.category || ''} ${t.merchantName || ''} ${t.description || ''}`.toLowerCase();
+
+      for (const [key, config] of Object.entries(categoryMap)) {
+        if (key === 'other') continue;
+        if (config.keywords.some(keyword => searchText.includes(keyword))) {
+          categoryKey = key;
+          break;
+        }
+      }
+
+      // Also check if transaction has explicit category
+      if (t.category) {
+        const categoryLower = t.category.toLowerCase();
+        if (categoryMap[categoryLower]) {
+          categoryKey = categoryLower;
+        }
+      }
+
+      categoryTotals[categoryKey] = (categoryTotals[categoryKey] || 0) + amount;
+    });
+
+    // Convert to array and calculate percentages
+    const spendingData = Object.entries(categoryTotals)
+      .map(([key, amount]) => ({
+        label: categoryMap[key].label,
+        amount,
+        percent: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0,
+        color: categoryMap[key].color
+      }))
+      .filter(item => item.amount > 0)
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5); // Top 5 categories
+
+    // If no expenses, return default message
+    if (spendingData.length === 0) {
+      return { spendingData: [], totalExpenses: 0 };
+    }
+
+    return { spendingData, totalExpenses };
+  };
+
   const formatCurrency = (amount: number, currency: string = 'GBP') => {
     const symbol = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€';
     const numAmount = Math.abs(Number(amount) || 0);
@@ -436,47 +534,70 @@ export default function Dashboard() {
         {/* Bottom Section */}
         <div className="grid grid-cols-2 gap-6">
           {/* Goals */}
-          <div className="bg-purple-200 rounded-2xl p-6">
+          <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Goals</h3>
-              <div className="flex gap-2">
-                <button className="text-gray-600">◀</button>
-                <button className="text-gray-600">▶</button>
-              </div>
+              <h3 className="font-bold text-gray-900">Savings Goals</h3>
+              <span className="text-xs text-gray-600">Coming Soon</span>
             </div>
-            <p className="text-sm text-gray-700 mb-4">Summer Vacation</p>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center">
-                <span className="text-3xl">✈️</span>
+            <div className="text-center py-8">
+              <div className="w-20 h-20 bg-white/60 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🎯</span>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">62% reached</p>
-                <p className="text-sm text-gray-600">$1,485 out of $2,385</p>
-              </div>
+              <p className="text-gray-700 font-medium mb-2">Set Your Financial Goals</p>
+              <p className="text-sm text-gray-600">
+                Track savings for vacations, emergency funds, or major purchases
+              </p>
             </div>
           </div>
 
           {/* Spending Overview */}
-          <div className="bg-orange-200 rounded-2xl p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Spending Overview</h3>
-            <div className="space-y-3">
-              {[
-                { label: "Groceries", percent: 88 },
-                { label: "Withdrawal", percent: 20 },
-                { label: "Retail", percent: 10 },
-                { label: "Leisure", percent: 2 },
-              ].map((item, i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-700">{item.percent}%</span>
-                    <span className="text-gray-700">{item.label}</span>
-                  </div>
-                  <div className="w-full bg-gray-800 rounded-full h-2">
-                    <div className="bg-white rounded-full h-2" style={{ width: `${item.percent}%` }}></div>
-                  </div>
-                </div>
-              ))}
+          <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900">Spending Overview</h3>
+              <span className="text-xs text-gray-600">This Month</span>
             </div>
+            {(() => {
+              const { spendingData, totalExpenses } = calculateSpendingByCategory();
+              
+              if (spendingData.length === 0) {
+                return (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600 mb-2">No expenses this month</p>
+                    <p className="text-sm text-gray-500">Your spending will appear here once you make transactions</p>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  <div className="space-y-4">
+                    {spendingData.map((item, i) => (
+                      <div key={i}>
+                        <div className="flex justify-between text-sm mb-1.5">
+                          <span className="font-medium text-gray-800">{item.label}</span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(item.amount)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-white/60 rounded-full h-2.5 overflow-hidden">
+                            <div 
+                              className={`${item.color} rounded-full h-2.5 transition-all duration-500`} 
+                              style={{ width: `${item.percent}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-gray-700 w-10 text-right">{item.percent}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-orange-300">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-semibold text-gray-800">Total Spending</span>
+                      <span className="text-lg font-bold text-gray-900">{formatCurrency(totalExpenses)}</span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </main>
