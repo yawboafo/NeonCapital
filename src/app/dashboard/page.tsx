@@ -82,6 +82,16 @@ export default function Dashboard() {
     );
   };
 
+  const calculateInvestmentGain = () => {
+    const totalCost = investments.reduce((sum, inv) => 
+      sum + ((inv.purchasePrice || 0) * (inv.quantity || 0)), 0
+    );
+    const currentValue = calculateInvestmentValue();
+    const gain = currentValue - totalCost;
+    const gainPercent = totalCost > 0 ? ((gain / totalCost) * 100) : 0;
+    return { gain, gainPercent, totalCost };
+  };
+
   const getRecentTransactions = () => {
     return transactions
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -392,26 +402,26 @@ export default function Dashboard() {
         {/* Balance Cards */}
         <div className="grid grid-cols-2 gap-6 mb-8">
           {/* Total Balance Card */}
-          <div className="bg-blue-600 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow">
+          <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow border border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-blue-100">Total Balance</h3>
-              <span className="bg-white/20 px-3 py-1 rounded-full text-white text-xs font-medium">
+              <h3 className="text-sm font-medium text-gray-700">Total Balance</h3>
+              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
                 {accounts.length} Accounts
               </span>
             </div>
-            <p className="text-4xl font-bold text-white mb-6">
+            <p className="text-4xl font-bold text-gray-900 mb-6">
               {formatCurrency(calculateTotalBalance())}
             </p>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/10 rounded-lg px-4 py-3">
-                <p className="text-blue-100 text-xs mb-1">Income</p>
-                <p className="font-semibold text-white">
+              <div className="bg-green-50 rounded-lg px-4 py-3">
+                <p className="text-green-700 text-xs mb-1">Income</p>
+                <p className="font-semibold text-green-900">
                   {formatCurrency(calculateTotalIncome())}
                 </p>
               </div>
-              <div className="bg-white/10 rounded-lg px-4 py-3">
-                <p className="text-blue-100 text-xs mb-1">Expenses</p>
-                <p className="font-semibold text-white">
+              <div className="bg-red-50 rounded-lg px-4 py-3">
+                <p className="text-red-700 text-xs mb-1">Expenses</p>
+                <p className="font-semibold text-red-900">
                   {formatCurrency(calculateTotalExpenses())}
                 </p>
               </div>
@@ -426,24 +436,51 @@ export default function Dashboard() {
                 {investments.length} Assets
               </span>
             </div>
-            <p className="text-4xl font-bold text-gray-900 mb-6">
+            <p className="text-4xl font-bold text-gray-900 mb-3">
               {formatCurrency(calculateInvestmentValue())}
             </p>
-            <div className="flex gap-1 items-end h-16">
-              {investments.length > 0 ? (
-                investments.slice(0, 12).map((inv, i) => {
-                  const gain = ((inv.currentPrice - inv.purchasePrice) / inv.purchasePrice) * 100;
-                  const height = Math.min(Math.max(gain + 50, 20), 100);
-                  return (
-                    <div key={i} className="flex-1 bg-blue-600 rounded-t transition-colors" style={{ height: `${height}%` }}></div>
-                  );
-                })
-              ) : (
-                [30, 40, 35, 45, 50, 60, 55, 70, 65, 75, 80, 90].map((height, i) => (
-                  <div key={i} className="flex-1 bg-blue-200 rounded-t" style={{ height: `${height}%` }}></div>
-                ))
-              )}
-            </div>
+            {investments.length > 0 ? (
+              <>
+                <div className={`flex items-center gap-2 mb-4 ${calculateInvestmentGain().gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {calculateInvestmentGain().gain >= 0 ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                    )}
+                  </svg>
+                  <span className="font-semibold text-lg">
+                    {calculateInvestmentGain().gainPercent >= 0 ? '+' : ''}{calculateInvestmentGain().gainPercent.toFixed(2)}%
+                  </span>
+                  <span className="text-sm font-medium">
+                    {calculateInvestmentGain().gain >= 0 ? '+' : ''}{formatCurrency(calculateInvestmentGain().gain)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 rounded-lg px-4 py-3">
+                    <p className="text-blue-700 text-xs mb-1">Total Cost</p>
+                    <p className="font-semibold text-blue-900">
+                      {formatCurrency(calculateInvestmentGain().totalCost)}
+                    </p>
+                  </div>
+                  <div className={`rounded-lg px-4 py-3 ${calculateInvestmentGain().gain >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                    <p className={`text-xs mb-1 ${calculateInvestmentGain().gain >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                      {calculateInvestmentGain().gain >= 0 ? 'Total Gain' : 'Total Loss'}
+                    </p>
+                    <p className={`font-semibold ${calculateInvestmentGain().gain >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+                      {formatCurrency(Math.abs(calculateInvestmentGain().gain))}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                <p>No investments yet</p>
+                <Link href="/dashboard/investments" className="text-blue-600 hover:underline mt-1 inline-block">
+                  Add your first investment
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
