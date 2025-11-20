@@ -4,15 +4,15 @@ const promotions = [
   {
     id: 1,
     badge: "NEW CUSTOMER",
-    title: "$300 Welcome Bonus",
+    title: "£300 Welcome Bonus",
     subtitle: "Open a new checking account",
-    description: "Get a $300 cash bonus when you open a new Neon Capital checking account and complete qualifying activities within 90 days.",
+    description: "Get a £300 cash bonus when you open a new Neon Capital checking account and complete qualifying activities within 90 days.",
     image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80",
     requirements: [
       "Open a new personal checking account",
-      "Set up direct deposit of $500+ within 60 days",
+      "Set up direct deposit of £500+ within 60 days",
       "Complete 10 debit card purchases within 60 days",
-      "Maintain minimum balance of $1,500 for 90 days"
+      "Maintain minimum balance of £1,500 for 90 days"
     ],
     terms: "Offer valid for new customers only. Bonus will be deposited within 120 days of meeting requirements.",
     expires: "December 31, 2025",
@@ -27,7 +27,7 @@ const promotions = [
     image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80",
     requirements: [
       "Minimum credit score of 720",
-      "Maximum loan amount of $50,000",
+      "Maximum loan amount of £50,000",
       "Vehicle must be model year 2024 or newer",
       "Automatic payment enrollment required"
     ],
@@ -39,16 +39,16 @@ const promotions = [
     id: 3,
     badge: "CREDIT CARD",
     title: "3% Cashback Everywhere",
-    subtitle: "Plus $200 sign-up bonus",
-    description: "Earn 3% unlimited cashback on all purchases with our premium credit card. Plus, get a $200 bonus after spending $1,000 in the first 3 months.",
+    subtitle: "Plus £200 sign-up bonus",
+    description: "Earn 3% unlimited cashback on all purchases with our premium credit card. Plus, get a £200 bonus after spending £1,000 in the first 3 months.",
     image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=800&q=80",
     requirements: [
-      "Spend $1,000 in first 3 months",
+      "Spend £1,000 in first 3 months",
       "No annual fee for the first year",
       "Good to excellent credit required",
       "Must be 18 years or older"
     ],
-    terms: "Standard APR applies after promotional period. Annual fee of $95 applies after first year.",
+    terms: "Standard APR applies after promotional period. Annual fee of £95 applies after first year.",
     expires: "Ongoing offer",
     color: "from-purple-500 to-pink-600"
   },
@@ -65,7 +65,7 @@ const promotions = [
       "Enroll in paperless statements",
       "Maintain account in good standing"
     ],
-    terms: "APY is variable and subject to change. Fees may reduce earnings. FDIC insured up to $250,000.",
+    terms: "APY is variable and subject to change. Fees may reduce earnings. FDIC insured up to £250,000.",
     expires: "January 31, 2026",
     color: "from-yellow-500 to-orange-600"
   },
@@ -89,9 +89,9 @@ const promotions = [
   {
     id: 6,
     badge: "REFER & EARN",
-    title: "Earn $50 Per Referral",
+    title: "Earn £50 Per Referral",
     subtitle: "Unlimited referral rewards",
-    description: "Share the benefits of Neon Capital with friends and family. Earn $50 for each person who opens a qualified account using your referral.",
+    description: "Share the benefits of Neon Capital with friends and family. Earn £50 for each person who opens a qualified account using your referral.",
     image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=800&q=80",
     requirements: [
       "Be an existing Neon Capital customer",
