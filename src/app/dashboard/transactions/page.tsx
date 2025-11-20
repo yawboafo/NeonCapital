@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -8,25 +8,158 @@ export default function Transactions() {
   const router = useRouter();
   const [activeNav, setActiveNav] = useState("transactions");
   const [filterTab, setFilterTab] = useState("all");
+  const [user, setUser] = useState<any>(null);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    fetchData(parsedUser._id);
+  }, []);
+
+  const fetchData = async (userId: string) => {
+    try {
+      const [accountsRes, transactionsRes] = await Promise.all([
+        fetch(`/api/accounts?userId=${userId}`),
+        fetch(`/api/transactions?userId=${userId}`)
+      ]);
+
+      const accountsData = await accountsRes.json();
+      const transactionsData = await transactionsRes.json();
+
+      if (accountsData.success) {
+        setAccounts(accountsData.accounts || []);
+        if (accountsData.accounts.length > 0) {
+          setSelectedAccount(accountsData.accounts[0]._id);
+        }
+      }
+
+      if (transactionsData.success) {
+        setTransactions(transactionsData.transactions || []);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     router.push("/");
   };
 
-  const transactions = [
-    { id: 1, name: "Central Burger", category: "Cafe and Restaurant", amount: "-$189.36", date: "Pending", color: "bg-purple-200", icon: "🍔" },
-    { id: 2, name: "The Market", category: "Groceries", amount: "-$92.50", date: "Today", color: "bg-blue-200", icon: "🛒" },
-    { id: 3, name: "Quick Transfer", category: "Maria Purple", amount: "+$350.00", date: "Today", color: "bg-orange-200", icon: "💸", positive: true },
-    { id: 4, name: "The Market", category: "Groceries", amount: "-$36.20", date: "Today", color: "bg-purple-200", icon: "🛒" },
-    { id: 5, name: "Central Burger", category: "Cafe and Restaurant", amount: "-$189.36", date: "21 January 2022", color: "bg-blue-200", icon: "🍔" },
-  ];
+  const formatCurrency = (amount: number, currency: string = 'GBP') => {
+    const symbol = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€';
+    const numAmount = Number(amount) || 0;
+    return `${symbol}${numAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
-  const filteredTransactions = transactions.filter(t => {
-    if (filterTab === "all") return true;
-    if (filterTab === "expenses") return !t.positive;
-    if (filterTab === "income") return t.positive;
-    return true;
+  const getSelectedAccountDetails = () => {
+    return accounts.find(acc => acc._id === selectedAccount) || null;
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const icons: any = {
+      'Transfer': '💸',
+      'Groceries': '🛒',
+      'Food': '🍔',
+      'Salary': '💰',
+      'Shopping': '🛍️',
+      'Transport': '🚗',
+      'Entertainment': '🎬',
+      'Bills': '📄',
+      'Healthcare': '🏥',
+      'Education': '📚'
+    };
+    return icons[category] || '💳';
+  };
+
+  const getCategoryColor = (index: number) => {
+    const colors = ['bg-purple-200', 'bg-blue-200', 'bg-orange-200', 'bg-green-200', 'bg-pink-200', 'bg-yellow-200'];
+    return colors[index % colors.length];
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+  };
+
+  const groupTransactionsByDate = (transactions: any[]) => {
+    const grouped: any = {};
+    transactions.forEach(transaction => {
+      const dateKey = formatDate(transaction.date || transaction.createdAt);
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(transaction);
+    });
+    return grouped;
+  };
+
+  const accountTransactions = selectedAccount 
+    ? transactions.filter(t => t.accountId === selectedAccount)
+    : transactions;
+
+  const filteredTransactions = accountTransactions.filter(t => {
+    const matchesFilter = filterTab === "all" || 
+                         (filterTab === "expenses" && t.type === "expense") ||
+                         (filterTab === "income" && t.type === "income");
+    const matchesSearch = !searchQuery || 
+                         t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         t.category?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
   });
+
+  const groupedTransactions = groupTransactionsByDate(filteredTransactions);
+
+  const calculateStats = () => {
+    const accountDetails = getSelectedAccountDetails();
+    if (!accountDetails) return { balance: 0, available: 0, income: 0, expenses: 0 };
+
+    const accountTxns = transactions.filter(t => t.accountId === selectedAccount);
+    const income = accountTxns.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const expenses = accountTxns.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+    return {
+      balance: accountDetails.balance || 0,
+      available: accountDetails.balance || 0,
+      income,
+      expenses
+    };
+  };
+
+  const stats = calculateStats();
+  const accountDetails = getSelectedAccountDetails();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading transactions...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -94,54 +227,70 @@ export default function Transactions() {
           {/* Left Column - Account Info */}
           <div className="space-y-6">
             {/* Account Selector */}
-            <select className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border-none">
-              <option>Checking Account</option>
-              <option>Savings Account</option>
-              <option>Budget Account</option>
+            <select 
+              className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border-none"
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+            >
+              {accounts.map(account => (
+                <option key={account._id} value={account._id}>
+                  {account.accountName} - {formatCurrency(account.balance, account.currency)}
+                </option>
+              ))}
             </select>
 
-            {/* Account Card */}
-            <div className="bg-gray-900 text-white rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Checking Account</h3>
-                <span className="text-cyan-400 text-sm">📈 2.36%</span>
-              </div>
-              <div className="mb-2">
-                <p className="text-sm text-gray-400">Balance</p>
-                <p className="text-3xl font-bold">£10,000.00</p>
-              </div>
-              <div className="mt-4">
-                <p className="text-sm text-gray-400">Available</p>
-                <p className="text-xl font-semibold">£8,000.00</p>
-              </div>
-              <div className="border-t border-gray-700 pt-4 mt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">▲ Income</p>
-                  <p className="font-semibold">£30,000.00</p>
+            {accountDetails && (
+              <>
+                {/* Account Card */}
+                <div className="bg-gray-900 text-white rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">{accountDetails.accountName}</h3>
+                    {accountDetails.interestRate && (
+                      <span className="text-cyan-400 text-sm">📈 {accountDetails.interestRate}%</span>
+                    )}
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-400">Balance</p>
+                    <p className="text-3xl font-bold">{formatCurrency(stats.balance, accountDetails.currency)}</p>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-400">Available</p>
+                    <p className="text-xl font-semibold">{formatCurrency(stats.available, accountDetails.currency)}</p>
+                  </div>
+                  <div className="border-t border-gray-700 pt-4 mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">▲ Income</p>
+                      <p className="font-semibold">{formatCurrency(stats.income, accountDetails.currency)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400 mb-1">▼ Expenses</p>
+                      <p className="font-semibold">{formatCurrency(stats.expenses, accountDetails.currency)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-1 text-sm text-gray-400">
+                    {accountDetails.iban && <p>IBAN: {accountDetails.iban}</p>}
+                    {accountDetails.accountNumber && <p>Account: {accountDetails.accountNumber}</p>}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">▼ Expenses</p>
-                  <p className="font-semibold">£20,000.00</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Physical Card */}
-            <div className="bg-gradient-to-br from-orange-300 to-orange-400 rounded-2xl p-6 text-white">
-              <div className="flex items-center justify-between mb-8">
-                <div className="w-12 h-8 bg-yellow-300 rounded"></div>
-                <div className="text-2xl">💳</div>
-              </div>
-              <p className="text-sm mb-2">Available Balance</p>
-              <p className="text-2xl font-bold mb-8">£10,000.00</p>
-              <div className="space-y-1">
-                <p className="text-sm">1111 **** **** 0000</p>
-                <div className="flex justify-between">
-                  <p className="text-sm">Nicola Rich</p>
-                  <p className="text-sm">12/24</p>
+                {/* Account Info Card */}
+                <div className="bg-gradient-to-br from-orange-300 to-orange-400 rounded-2xl p-6 text-white">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="w-12 h-8 bg-yellow-300 rounded"></div>
+                    <div className="text-2xl">💳</div>
+                  </div>
+                  <p className="text-sm mb-2">{accountDetails.accountType}</p>
+                  <p className="text-2xl font-bold mb-8">{formatCurrency(accountDetails.balance, accountDetails.currency)}</p>
+                  <div className="space-y-1">
+                    {accountDetails.accountNumber && <p className="text-sm">Account: {accountDetails.accountNumber}</p>}
+                    <div className="flex justify-between">
+                      <p className="text-sm">{user?.firstName} {user?.lastName}</p>
+                      {accountDetails.sortCode && <p className="text-sm">{accountDetails.sortCode}</p>}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
 
             {/* Spending Overview */}
             <div className="bg-white rounded-2xl p-6">
@@ -185,7 +334,9 @@ export default function Transactions() {
               <div className="mb-6">
                 <input
                   type="text"
-                  placeholder="Search"
+                  placeholder="Search transactions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -198,7 +349,7 @@ export default function Transactions() {
                     filterTab === "all" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"
                   }`}
                 >
-                  All
+                  All ({accountTransactions.length})
                 </button>
                 <button
                   onClick={() => setFilterTab("expenses")}
@@ -206,7 +357,7 @@ export default function Transactions() {
                     filterTab === "expenses" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"
                   }`}
                 >
-                  Expenses
+                  Expenses ({accountTransactions.filter(t => t.type === 'expense').length})
                 </button>
                 <button
                   onClick={() => setFilterTab("income")}
@@ -214,83 +365,47 @@ export default function Transactions() {
                     filterTab === "income" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"
                   }`}
                 >
-                  Income
+                  Income ({accountTransactions.filter(t => t.type === 'income').length})
                 </button>
               </div>
 
               {/* Transactions List */}
               <div className="space-y-6">
-                {/* Pending Section */}
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-500 mb-3">Pending</h4>
-                  {filteredTransactions.filter(t => t.date === "Pending").map(transaction => (
-                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 ${transaction.color} rounded-full flex items-center justify-center text-xl`}>
-                          {transaction.icon}
+                {filteredTransactions.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>No transactions found</p>
+                  </div>
+                ) : (
+                  Object.keys(groupedTransactions).map((dateKey, dateIndex) => (
+                    <div key={dateKey}>
+                      <h4 className="text-sm font-semibold text-gray-500 mb-3">{dateKey}</h4>
+                      {groupedTransactions[dateKey].map((transaction: any, index: number) => (
+                        <div key={transaction._id} className="flex items-center justify-between py-3 border-b border-gray-100">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-12 h-12 ${getCategoryColor(index)} rounded-full flex items-center justify-center text-xl`}>
+                              {getCategoryIcon(transaction.category)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{transaction.description}</p>
+                              <p className="text-sm text-gray-500">{transaction.category}</p>
+                              {transaction.reference && (
+                                <p className="text-xs text-gray-400">Ref: {transaction.reference}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-semibold ${transaction.type === 'income' ? "text-green-600" : "text-red-600"}`}>
+                              {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount, accountDetails?.currency)}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {transaction.status === 'Completed' ? '✓ Completed' : '⏳ ' + transaction.status}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{transaction.name}</p>
-                          <p className="text-sm text-gray-500">{transaction.category}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-semibold ${transaction.positive ? "text-green-600" : "text-red-600"}`}>
-                          {transaction.amount}
-                        </p>
-                        <p className="text-sm text-gray-500">10,000.00</p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-
-                {/* Today Section */}
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-500 mb-3">Today</h4>
-                  {filteredTransactions.filter(t => t.date === "Today").map(transaction => (
-                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 ${transaction.color} rounded-full flex items-center justify-center text-xl`}>
-                          {transaction.icon}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{transaction.name}</p>
-                          <p className="text-sm text-gray-500">{transaction.category}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-semibold ${transaction.positive ? "text-green-600" : "text-red-600"}`}>
-                          {transaction.amount}
-                        </p>
-                        <p className="text-sm text-gray-500">10,000.00</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Past Dates Section */}
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-500 mb-3">21 January 2022</h4>
-                  {filteredTransactions.filter(t => t.date === "21 January 2022").map(transaction => (
-                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 ${transaction.color} rounded-full flex items-center justify-center text-xl`}>
-                          {transaction.icon}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{transaction.name}</p>
-                          <p className="text-sm text-gray-500">{transaction.category}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-semibold ${transaction.positive ? "text-green-600" : "text-red-600"}`}>
-                          {transaction.amount}
-                        </p>
-                        <p className="text-sm text-gray-500">10,000.00</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
