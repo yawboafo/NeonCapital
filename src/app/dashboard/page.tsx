@@ -13,6 +13,14 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [investments, setInvestments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferForm, setTransferForm] = useState({
+    accountId: '',
+    recipientName: '',
+    recipientAccount: '',
+    amount: '',
+    description: ''
+  });
 
   useEffect(() => {
     // Get user from localStorage
@@ -90,6 +98,65 @@ export default function Dashboard() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push("/");
+  };
+
+  const handleQuickTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!transferForm.accountId) {
+      alert('Please select an account');
+      return;
+    }
+    
+    if (!transferForm.recipientName || !transferForm.recipientAccount) {
+      alert('Please enter recipient details');
+      return;
+    }
+    
+    if (!transferForm.amount || parseFloat(transferForm.amount) <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/transfers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accountId: transferForm.accountId,
+          recipientName: transferForm.recipientName,
+          recipientAccount: transferForm.recipientAccount,
+          amount: parseFloat(transferForm.amount),
+          description: transferForm.description || 'Quick transfer',
+          status: 'Completed',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Transfer successful!');
+        setShowTransferModal(false);
+        setTransferForm({
+          accountId: '',
+          recipientName: '',
+          recipientAccount: '',
+          amount: '',
+          description: ''
+        });
+        // Refresh data
+        if (user) {
+          fetchUserData(user._id);
+        }
+      } else {
+        alert(data.error || 'Transfer failed');
+      }
+    } catch (error) {
+      console.error('Error processing transfer:', error);
+      alert('Failed to process transfer');
+    }
   };
 
   if (loading) {
@@ -172,13 +239,19 @@ export default function Dashboard() {
         </nav>
 
         <div className="absolute bottom-8 space-y-2 w-52">
-          <button className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg w-full text-left">
+          <Link 
+            href="/dashboard/settings"
+            onClick={() => setActiveNav("settings")}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
+              activeNav === "settings" ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Settings
-          </button>
+          </Link>
           <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg w-full text-left">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -455,30 +528,154 @@ export default function Dashboard() {
           <div className="bg-gray-900 rounded-2xl p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Quick Transfer</h3>
-              <div className="flex gap-2">
-                <button className="text-gray-400">◀</button>
-                <button className="text-gray-400">▶</button>
-              </div>
+              <button 
+                onClick={() => setShowTransferModal(true)}
+                className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+              >
+                Transfer Now →
+              </button>
             </div>
             <div className="flex gap-4">
-              <div className="text-center">
+              <button 
+                onClick={() => setShowTransferModal(true)}
+                className="text-center hover:opacity-80 transition-opacity"
+              >
                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-2">
                   <span className="text-2xl">➕</span>
                 </div>
                 <p className="text-xs">Add New</p>
-              </div>
+              </button>
               {["MP", "LS", "OW", "KP"].map((initials, i) => (
-                <div key={i} className="text-center">
+                <button 
+                  key={i} 
+                  onClick={() => setShowTransferModal(true)}
+                  className="text-center hover:opacity-80 transition-opacity"
+                >
                   <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full flex items-center justify-center mb-2 text-white font-semibold">
                     {initials}
                   </div>
                   <p className="text-xs">{["Maria", "Leonard", "Oscar", "Karen"][i]}</p>
-                </div>
+                </button>
               ))}
             </div>
           </div>
         </div>
       </main>
+
+      {/* Quick Transfer Modal */}
+      {showTransferModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 relative">
+            <button 
+              onClick={() => setShowTransferModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+            
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Transfer</h2>
+            
+            <form onSubmit={handleQuickTransfer} className="space-y-4">
+              {/* From Account */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  From Account
+                </label>
+                <select
+                  value={transferForm.accountId}
+                  onChange={(e) => setTransferForm({...transferForm, accountId: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select account</option>
+                  {accounts.map((account) => (
+                    <option key={account._id} value={account._id}>
+                      {account.accountType} - {formatCurrency(account.balance, account.currency)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Recipient Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Recipient Name
+                </label>
+                <input
+                  type="text"
+                  value={transferForm.recipientName}
+                  onChange={(e) => setTransferForm({...transferForm, recipientName: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+
+              {/* Recipient Account */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Recipient Account / IBAN
+                </label>
+                <input
+                  type="text"
+                  value={transferForm.recipientAccount}
+                  onChange={(e) => setTransferForm({...transferForm, recipientAccount: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="GB29 NWBK 6016 1331 9268 19"
+                  required
+                />
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Amount
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={transferForm.amount}
+                  onChange={(e) => setTransferForm({...transferForm, amount: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={transferForm.description}
+                  onChange={(e) => setTransferForm({...transferForm, description: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Payment for..."
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowTransferModal(false)}
+                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                >
+                  Transfer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
