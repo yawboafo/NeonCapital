@@ -36,9 +36,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, recipientName, recipientAccount, amount, currency, type, status } = body;
+    const { 
+      userId, 
+      fromAccount,
+      toAccount,
+      recipientName, 
+      recipientEmail,
+      recipientIban,
+      amount, 
+      date,
+      purpose,
+      reference,
+      notes,
+      status 
+    } = body;
 
-    if (!userId || !recipientName || !recipientAccount || !amount || !currency) {
+    if (!userId || !amount || !recipientIban) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -50,13 +63,17 @@ export async function POST(request: NextRequest) {
 
     const transfer = {
       userId,
-      recipientName,
-      recipientAccount,
+      fromAccount: fromAccount || 'N/A',
+      toAccount: toAccount || recipientIban,
+      recipientName: recipientName || 'N/A',
+      recipientEmail: recipientEmail || '',
+      recipientIban: recipientIban,
       amount: parseFloat(amount),
-      currency,
-      type: type || 'International',
+      date: date || new Date().toISOString().split('T')[0],
+      purpose: purpose || '',
+      reference: reference || '',
+      notes: notes || '',
       status: status || 'Pending',
-      transferDate: new Date().toISOString(),
       createdAt: new Date()
     };
 

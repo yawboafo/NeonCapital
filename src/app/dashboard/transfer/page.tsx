@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -8,11 +8,151 @@ export default function Transfer() {
   const router = useRouter();
   const [activeNav, setActiveNav] = useState("transfer");
   const [transferType, setTransferType] = useState("own");
-  const [selectedAccount, setSelectedAccount] = useState("checking");
+  const [user, setUser] = useState<any>(null);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    recipientName: "",
+    recipientEmail: "",
+    recipientIban: "",
+    amount: "",
+    date: new Date().toISOString().split('T')[0],
+    purpose: "",
+    reference: "",
+    notes: "",
+    status: "Pending"
+  });
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    fetchAccounts(parsedUser._id);
+  }, []);
+
+  const fetchAccounts = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/accounts?userId=${userId}`);
+      const data = await response.json();
+      if (data.success) {
+        setAccounts(data.accounts || []);
+        if (data.accounts.length > 0) {
+          setSelectedAccount(data.accounts[0]._id);
+        }
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+      setLoading(false);
+    }
+  };
+
+  const getSelectedAccountDetails = () => {
+    return accounts.find(acc => acc._id === selectedAccount) || null;
+  };
+
+  const formatCurrency = (amount: number, currency: string = 'GBP') => {
+    const symbol = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : '€';
+    const numAmount = Number(amount) || 0;
+    return `${symbol}${numAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const handleTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedAccount || !formData.amount || !formData.recipientIban) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const accountDetails = getSelectedAccountDetails();
+    if (!accountDetails) {
+      alert('Please select an account');
+      return;
+    }
+
+    const transferAmount = parseFloat(formData.amount);
+    if (isNaN(transferAmount) || transferAmount <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+
+    if (transferAmount > accountDetails.balance) {
+      alert('Insufficient funds');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/transfers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user._id,
+          fromAccount: accountDetails.accountName,
+          toAccount: formData.recipientName || formData.recipientIban,
+          amount: transferAmount,
+          date: formData.date,
+          status: formData.status,
+          recipientName: formData.recipientName,
+          recipientEmail: formData.recipientEmail,
+          recipientIban: formData.recipientIban,
+          purpose: formData.purpose,
+          reference: formData.reference,
+          notes: formData.notes,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update account balance locally
+        await fetchAccounts(user._id);
+        
+        // Reset form
+        setFormData({
+          recipientName: "",
+          recipientEmail: "",
+          recipientIban: "",
+          amount: "",
+          date: new Date().toISOString().split('T')[0],
+          purpose: "",
+          reference: "",
+          notes: "",
+          status: "Pending"
+        });
+        
+        alert('Transfer completed successfully!');
+      } else {
+        alert(data.error || 'Transfer failed');
+      }
+    } catch (error) {
+      console.error('Transfer error:', error);
+      alert('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     router.push("/");
   };
+
+  if (loading && accounts.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading your accounts...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -82,70 +222,84 @@ export default function Transfer() {
             {/* Select Payer */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Select payer</label>
-              <select 
-                value={selectedAccount}
-                onChange={(e) => setSelectedAccount(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border-none"
-              >
-                <option value="checking">Checking Account</option>
-                <option value="savings">Savings Account</option>
-                <option value="budget">Budget Account</option>
-              </select>
+              {accounts.length === 0 ? (
+                <div className="w-full px-4 py-3 bg-gray-100 text-gray-500 rounded-lg">
+                  No accounts available
+                </div>
+              ) : (
+                <select 
+                  value={selectedAccount}
+                  onChange={(e) => setSelectedAccount(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border-none"
+                >
+                  {accounts.map((account) => (
+                    <option key={account._id} value={account._id}>
+                      {account.accountName} - {formatCurrency(account.balance, account.currency)}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Account Card */}
-            <div className="bg-gray-900 text-white rounded-2xl p-6 mb-6">
-              <h3 className="text-lg font-semibold mb-4">Checking Account</h3>
-              <div className="mb-2">
-                <p className="text-sm text-gray-400">Balance</p>
-                <p className="text-3xl font-bold">£10,000.00</p>
+            {getSelectedAccountDetails() && (
+              <div className="bg-gray-900 text-white rounded-2xl p-6 mb-6">
+                <h3 className="text-lg font-semibold mb-4">{getSelectedAccountDetails()?.accountName}</h3>
+                <div className="mb-2">
+                  <p className="text-sm text-gray-400">Balance</p>
+                  <p className="text-3xl font-bold">
+                    {formatCurrency(getSelectedAccountDetails()?.balance, getSelectedAccountDetails()?.currency)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">{getSelectedAccountDetails()?.accountType}</p>
+                </div>
+                <div className="border-t border-gray-700 pt-4 mt-4">
+                  {getSelectedAccountDetails()?.iban && (
+                    <>
+                      <p className="text-sm text-gray-400 mb-1">IBAN</p>
+                      <p className="font-medium">{getSelectedAccountDetails()?.iban}</p>
+                    </>
+                  )}
+                  {getSelectedAccountDetails()?.accountNumber && (
+                    <>
+                      <p className="text-sm text-gray-400 mt-3 mb-1">Account Number</p>
+                      <p className="font-medium">{getSelectedAccountDetails()?.accountNumber}</p>
+                    </>
+                  )}
+                  <p className="text-sm text-gray-400 mt-3 mb-1">Account owner</p>
+                  <p className="font-medium">{user?.firstName} {user?.lastName}</p>
+                </div>
               </div>
-              <div className="border-t border-gray-700 pt-4 mt-4">
-                <p className="text-sm text-gray-400 mb-1">IBAN</p>
-                <p className="font-medium">AB11 0000 0000 1111 1111</p>
-                <p className="text-sm text-gray-400 mt-3 mb-1">Account owner</p>
-                <p className="font-medium">Nicola Rich</p>
-              </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <button className="w-full py-3 bg-purple-200 text-gray-900 rounded-lg font-medium hover:bg-purple-300 transition flex items-center justify-center gap-2">
+              <button 
+                onClick={() => {
+                  const iban = getSelectedAccountDetails()?.iban;
+                  if (iban) {
+                    navigator.clipboard.writeText(iban);
+                    alert('IBAN copied to clipboard!');
+                  } else {
+                    alert('No IBAN available for this account');
+                  }
+                }}
+                disabled={!getSelectedAccountDetails()?.iban}
+                className="w-full py-3 bg-purple-200 text-gray-900 rounded-lg font-medium hover:bg-purple-300 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
                 Share IBAN
               </button>
-              <button className="w-full py-3 bg-orange-200 text-gray-900 rounded-lg font-medium hover:bg-orange-300 transition flex items-center justify-center gap-2">
+              <button 
+                onClick={() => alert('Payment request feature coming soon!')}
+                className="w-full py-3 bg-orange-200 text-gray-900 rounded-lg font-medium hover:bg-orange-300 transition flex items-center justify-center gap-2"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Request payment
               </button>
-            </div>
-
-            {/* Saved Beneficiaries */}
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Saved Beneficiaries</h3>
-                <button className="text-blue-600 text-sm hover:underline">View all</button>
-              </div>
-              <div className="flex gap-4">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-2">
-                    <span className="text-2xl">➕</span>
-                  </div>
-                  <p className="text-xs text-gray-600">Add New</p>
-                </div>
-                {["MP", "LS", "OW"].map((initials, i) => (
-                  <div key={i} className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full flex items-center justify-center text-white font-semibold mb-2">
-                      {initials}
-                    </div>
-                    <p className="text-xs text-gray-600">{["Maria Purple", "Leonard Smith", "Oscar Wild"][i]}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -174,46 +328,65 @@ export default function Transfer() {
             </div>
 
             {/* Transfer Form */}
-            <div className="space-y-4">
+            <form onSubmit={handleTransfer} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Beneficiary</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Beneficiary IBAN *</label>
                 <input
                   type="text"
                   placeholder="IBAN *"
+                  value={formData.recipientIban}
+                  onChange={(e) => setFormData({ ...formData, recipientIban: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
                 <input
-                  type="text"
-                  placeholder="£0.00"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
+                {getSelectedAccountDetails() && formData.amount && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Available: {formatCurrency(getSelectedAccountDetails()?.balance, getSelectedAccountDetails()?.currency)}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
                 <input
                   type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
               </div>
 
               {/* Other Data Dropdown */}
               <details className="border border-gray-300 rounded-lg">
-                <summary className="px-4 py-3 cursor-pointer font-medium text-gray-700">Other data</summary>
+                <summary className="px-4 py-3 cursor-pointer font-medium text-gray-700">Other data (optional)</summary>
                 <div className="p-4 space-y-4 border-t border-gray-300">
                   <div className="grid grid-cols-2 gap-4">
                     <input
                       type="text"
                       placeholder="Transfer purpose"
+                      value={formData.purpose}
+                      onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                       className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <input
                       type="text"
                       placeholder="Beneficiary's name"
+                      value={formData.recipientName}
+                      onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
                       className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -221,26 +394,36 @@ export default function Transfer() {
                     <input
                       type="email"
                       placeholder="Beneficiary's email"
+                      value={formData.recipientEmail}
+                      onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
                       className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <input
                       type="text"
                       placeholder="Payer's reference"
+                      value={formData.reference}
+                      onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                       className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <textarea
                     placeholder="Information for beneficiary"
                     rows={3}
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
               </details>
 
-              <button className="w-full py-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition mt-6">
-                Continue
+              <button 
+                type="submit"
+                disabled={loading || accounts.length === 0}
+                className="w-full py-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Processing...' : 'Complete Transfer'}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </main>
