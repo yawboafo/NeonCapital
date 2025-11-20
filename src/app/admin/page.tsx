@@ -490,6 +490,129 @@ function UserManagement() {
 // Account Management Component
 function AccountManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    userId: '', accountType: 'Checking Account', accountName: '', currency: 'GBP',
+    balance: '', IBAN: '', sortCode: '', accountNumber: '', interestRate: ''
+  });
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      const data = await response.json();
+      if (data.success) setUsers(data.users);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch('/api/accounts');
+      const data = await response.json();
+      if (data.success) setAccounts(data.accounts);
+    } catch (error) {
+      console.error('Failed to fetch accounts:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    fetchAccounts();
+  }, []);
+
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Account created successfully!');
+        setShowCreateForm(false);
+        setFormData({ userId: '', accountType: 'Checking Account', accountName: '', currency: 'GBP', balance: '', IBAN: '', sortCode: '', accountNumber: '', interestRate: '' });
+        fetchAccounts();
+      } else {
+        alert(data.error || 'Failed to create account');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditAccount = (account: any) => {
+    setEditingAccount(account);
+    setFormData({
+      userId: account.userId || '',
+      accountType: account.accountType || 'Checking Account',
+      accountName: account.accountName || '',
+      currency: account.currency || 'GBP',
+      balance: account.balance?.toString() || '',
+      IBAN: account.IBAN || '',
+      sortCode: account.sortCode || '',
+      accountNumber: account.accountNumber || '',
+      interestRate: account.interestRate?.toString() || ''
+    });
+    setShowEditForm(true);
+    setShowCreateForm(false);
+  };
+
+  const handleUpdateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch('/api/accounts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _id: editingAccount._id, ...formData }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Account updated successfully!');
+        setShowEditForm(false);
+        setEditingAccount(null);
+        setFormData({ userId: '', accountType: 'Checking Account', accountName: '', currency: 'GBP', balance: '', IBAN: '', sortCode: '', accountNumber: '', interestRate: '' });
+        fetchAccounts();
+      } else {
+        alert(data.error || 'Failed to update account');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async (accountId: string) => {
+    if (!confirm('Are you sure you want to close this account?')) return;
+    try {
+      const response = await fetch(`/api/accounts?id=${accountId}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        alert('Account closed successfully');
+        fetchAccounts();
+      } else {
+        alert(data.error || 'Failed to close account');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    }
+  };
+
+  const getUserName = (userId: string) => {
+    const user = users.find(u => u._id === userId);
+    return user ? user.name : 'Unknown User';
+  };
 
   return (
     <div className="space-y-6">
@@ -497,27 +620,34 @@ function AccountManagement() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Bank Account Management</h2>
           <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => {
+              setShowCreateForm(!showCreateForm);
+              setShowEditForm(false);
+              setEditingAccount(null);
+              setFormData({ userId: '', accountType: 'Checking Account', accountName: '', currency: 'GBP', balance: '', IBAN: '', sortCode: '', accountNumber: '', interestRate: '' });
+            }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             {showCreateForm ? "Cancel" : "+ Create New Account"}
           </button>
         </div>
 
-        {showCreateForm && (
-          <div className="bg-gray-50 rounded-lg p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Bank Account</h3>
+        {showEditForm && (
+          <form onSubmit={handleUpdateAccount} className="bg-blue-50 rounded-lg p-6 mb-6 border-2 border-blue-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Account</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select User</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>John Doe - john@example.com</option>
-                  <option>Jane Smith - jane@example.com</option>
+                <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <select required value={formData.userId} onChange={(e) => setFormData({...formData, userId: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="">Select User</option>
+                  {users.map(user => (
+                    <option key={user._id} value={user._id}>{user.name} - {user.email}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <select value={formData.accountType} onChange={(e) => setFormData({...formData, accountType: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                   <option>Checking Account</option>
                   <option>Savings Account</option>
                   <option>Investment Account</option>
@@ -526,76 +656,145 @@ function AccountManagement() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Main Checking" />
+                <input type="text" required value={formData.accountName} onChange={(e) => setFormData({...formData, accountName: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Main Checking" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option>GBP (£)</option>
-                  <option>USD ($)</option>
-                  <option>EUR (€)</option>
+                <select value={formData.currency} onChange={(e) => setFormData({...formData, currency: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option>GBP</option>
+                  <option>USD</option>
+                  <option>EUR</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Initial Balance</label>
-                <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Balance</label>
+                <input type="number" step="0.01" required value={formData.balance} onChange={(e) => setFormData({...formData, balance: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="GB29 NWBK 6016 1331 9268 19" />
+                <input type="text" value={formData.IBAN} onChange={(e) => setFormData({...formData, IBAN: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="GB29NWBK60161331926819" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Sort Code</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="60-16-13" />
+                <input type="text" value={formData.sortCode} onChange={(e) => setFormData({...formData, sortCode: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="60-16-13" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
-                <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="31926819" />
+                <input type="text" value={formData.accountNumber} onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="31926819" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Interest Rate (%)</label>
-                <input type="number" step="0.01" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
+                <input type="number" step="0.01" value={formData.interestRate} onChange={(e) => setFormData({...formData, interestRate: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
               </div>
             </div>
             <div className="mt-6 flex gap-3">
-              <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                Create Account
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-400">
+                {loading ? 'Updating...' : 'Update Account'}
               </button>
-              <button onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+              <button type="button" onClick={() => { setShowEditForm(false); setEditingAccount(null); }} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
                 Cancel
               </button>
             </div>
-          </div>
+          </form>
+        )}
+
+        {showCreateForm && (
+          <form onSubmit={handleCreateAccount} className="bg-gray-50 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Bank Account</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select User *</label>
+                <select required value={formData.userId} onChange={(e) => setFormData({...formData, userId: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="">Select User</option>
+                  {users.map(user => (
+                    <option key={user._id} value={user._id}>{user.name} - {user.email}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+                <select value={formData.accountType} onChange={(e) => setFormData({...formData, accountType: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option>Checking Account</option>
+                  <option>Savings Account</option>
+                  <option>Investment Account</option>
+                  <option>Budget Account</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Account Name *</label>
+                <input type="text" required value={formData.accountName} onChange={(e) => setFormData({...formData, accountName: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Main Checking" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+                <select value={formData.currency} onChange={(e) => setFormData({...formData, currency: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option>GBP</option>
+                  <option>USD</option>
+                  <option>EUR</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Initial Balance *</label>
+                <input type="number" step="0.01" required value={formData.balance} onChange={(e) => setFormData({...formData, balance: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
+                <input type="text" value={formData.IBAN} onChange={(e) => setFormData({...formData, IBAN: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="GB29NWBK60161331926819" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sort Code</label>
+                <input type="text" value={formData.sortCode} onChange={(e) => setFormData({...formData, sortCode: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="60-16-13" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
+                <input type="text" value={formData.accountNumber} onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="31926819" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Interest Rate (%)</label>
+                <input type="number" step="0.01" value={formData.interestRate} onChange={(e) => setFormData({...formData, interestRate: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-400">
+                {loading ? 'Creating...' : 'Create Account'}
+              </button>
+              <button type="button" onClick={() => setShowCreateForm(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+                Cancel
+              </button>
+            </div>
+          </form>
         )}
 
         {/* Accounts List */}
         <div className="grid gap-4">
-          {[
-            { user: "John Doe", type: "Checking", balance: "£10,000.00", iban: "GB29 NWBK 6016 1331 9268 19", status: "Active" },
-            { user: "John Doe", type: "Savings", balance: "£8,000.00", iban: "GB82 WEST 1234 5698 7654 32", status: "Active" },
-            { user: "Jane Smith", type: "Checking", balance: "£15,500.00", iban: "GB33 BUKB 2020 1555 5555 55", status: "Active" },
-          ].map((account, i) => (
-            <div key={i} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-semibold text-gray-900">{account.user} - {account.type}</h4>
-                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{account.status}</span>
+          {accounts.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <p>No accounts found. Create your first account above.</p>
+            </div>
+          ) : (
+            accounts.map((account) => (
+              <div key={account._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4 className="font-semibold text-gray-900">{getUserName(account.userId)} - {account.accountType}</h4>
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 mb-2">{account.currency === 'GBP' ? '£' : account.currency === 'USD' ? '$' : '€'}{parseFloat(account.balance).toFixed(2)}</p>
+                    <p className="text-sm text-gray-500">{account.accountName}</p>
+                    {account.IBAN && <p className="text-sm text-gray-500">IBAN: {account.IBAN}</p>}
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">{account.balance}</p>
-                  <p className="text-sm text-gray-500">IBAN: {account.iban}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
-                    Edit
-                  </button>
-                  <button className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors">
-                    Close
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEditAccount(account)} className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
+                      Edit
+                    </button>
+                    <button onClick={() => handleDeleteAccount(account._id)} className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors">
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
