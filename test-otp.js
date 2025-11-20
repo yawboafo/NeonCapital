@@ -27,14 +27,28 @@ async function testOTP() {
     console.log('   Phone:', user.phone);
     console.log('   Email:', user.email);
     
-    // Format phone number to international format
-    let formattedPhone = user.phone;
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = '+233' + formattedPhone.substring(1);
-    } else if (!formattedPhone.startsWith('+')) {
-      formattedPhone = '+233' + formattedPhone;
+    // Format phone number - ensure it has international format
+    let smsPhone = user.phone;
+    
+    if (!smsPhone.startsWith('+')) {
+      // If starts with 0, assume Ghana and convert
+      if (smsPhone.startsWith('0')) {
+        smsPhone = '+233' + smsPhone.substring(1);
+      } 
+      // If starts with 1 and is 11 digits, assume USA/Canada
+      else if (smsPhone.startsWith('1') && smsPhone.length === 11) {
+        smsPhone = '+' + smsPhone;
+      }
+      // If starts with country code but missing +, add it
+      else if (smsPhone.length > 10) {
+        smsPhone = '+' + smsPhone;
+      }
+      // Default to Ghana for shorter numbers
+      else {
+        smsPhone = '+233' + smsPhone;
+      }
     }
-    console.log('   Formatted Phone:', formattedPhone);
+    console.log('   SMS Phone:', smsPhone);
     
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -43,13 +57,14 @@ async function testOTP() {
     // Store OTP in database
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await db.collection('otps').updateOne(
-      { phone: formattedPhone },
+      { phone: user.phone },
       {
         $set: {
           otp,
           expiresAt,
           verified: false,
           createdAt: new Date(),
+          smsPhone,
         },
       },
       { upsert: true }
@@ -69,7 +84,7 @@ async function testOTP() {
       body: JSON.stringify({
         messages: [
           {
-            destinations: [{ to: formattedPhone }],
+            destinations: [{ to: smsPhone }],
             from: 'NeonCapital',
             text: `Your Neon Capital verification code is: ${otp}. This code will expire in 10 minutes.`,
           },

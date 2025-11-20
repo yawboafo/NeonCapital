@@ -27,18 +27,8 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db('neoncapital');
 
-    // Format phone number to international format if needed
-    let formattedPhone = phone;
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = '+233' + formattedPhone.substring(1);
-    } else if (!formattedPhone.startsWith('+')) {
-      formattedPhone = '+233' + formattedPhone;
-    }
-
-    // Find user by phone (check both formats)
-    const user = await db.collection('users').findOne({ 
-      $or: [{ phone }, { phone: formattedPhone }]
-    });
+    // Find user by phone first to get their stored format
+    const user = await db.collection('users').findOne({ phone });
 
     if (!user) {
       return NextResponse.json(
@@ -57,20 +47,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Format phone number - ensure it has international format
+    let smsPhone = user.phone;
+    
+    // If phone doesn't start with +, try to add appropriate country code
+    if (!smsPhone.startsWith('+')) {
+      // If starts with 0, assume Ghana and convert
+      if (smsPhone.startsWith('0')) {
+        smsPhone = '+233' + smsPhone.substring(1);
+      } 
+      // If starts with 1 and is 10 digits, assume USA/Canada
+      else if (smsPhone.startsWith('1') && smsPhone.length === 11) {
+        smsPhone = '+' + smsPhone;
+      }
+      // If starts with country code but missing +, add it
+      else if (smsPhone.length > 10) {
+        smsPhone = '+' + smsPhone;
+      }
+      // Default to Ghana for shorter numbers
+      else {
+        smsPhone = '+233' + smsPhone;
+      }
+    }
+
+    console.log('Original phone:', user.phone, 'SMS phone:', smsPhone);
+
     // Generate OTP
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-    // Store OTP in database with formatted phone
+    // Store OTP in database with user's original phone number
     await db.collection('otps').updateOne(
-      { phone: formattedPhone },
+      { phone: user.phone },
       {
         $set: {
           otp,
           expiresAt,
           verified: false,
           createdAt: new Date(),
-          originalPhone: phone,
+          smsPhone,
         },
       },
       { upsert: true }
@@ -88,7 +103,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           messages: [
             {
-              destinations: [{ to: formattedPhone }],
+              destinations: [{ to: smsPhone }],
               from: 'NeonCapital',
               text: `Your Neon Capital verification code is: ${otp}. This code will expire in 10 minutes.`,
             },
