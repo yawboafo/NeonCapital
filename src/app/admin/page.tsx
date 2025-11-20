@@ -1231,9 +1231,10 @@ function TransactionManagement() {
                   {accounts.map((account) => {
                     const user = users.find((u) => u._id === account.userId);
                     const userName = user ? `${user.firstName} ${user.lastName}` : "Unknown";
+                    const balance = Number(account.balance) || 0;
                     return (
                       <option key={account._id} value={account._id}>
-                        {userName} - {account.accountName} ({account.currency === "GBP" && "£"}{account.currency === "USD" && "$"}{account.currency === "EUR" && "€"}{account.balance.toFixed(2)})
+                        {userName} - {account.accountName} ({account.currency === "GBP" && "£"}{account.currency === "USD" && "$"}{account.currency === "EUR" && "€"}{balance.toFixed(2)})
                       </option>
                     );
                   })}
