@@ -326,9 +326,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Transactions */}
-        <div className="mb-8">
-          {/* Transactions */}
+        {/* Transactions and Quick Transfer Section */}
+        <div className="grid grid-cols-2 gap-6 mb-8">
+          {/* Recent Transactions */}
           <div className="bg-white rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
@@ -395,10 +395,46 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {/* Quick Transfer */}
+          <div className="bg-gray-900 rounded-2xl p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Quick Transfer</h3>
+              <button 
+                onClick={() => setShowTransferModal(true)}
+                className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+              >
+                Transfer Now →
+              </button>
+            </div>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setShowTransferModal(true)}
+                className="text-center hover:opacity-80 transition-opacity"
+              >
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-2">
+                  <span className="text-2xl">➕</span>
+                </div>
+                <p className="text-xs">Add New</p>
+              </button>
+              {["MP", "LS", "OW", "KP"].map((initials, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => setShowTransferModal(true)}
+                  className="text-center hover:opacity-80 transition-opacity"
+                >
+                  <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full flex items-center justify-center mb-2 text-white font-semibold">
+                    {initials}
+                  </div>
+                  <p className="text-xs">{["Maria", "Leonard", "Oscar", "Karen"][i]}</p>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Bottom Section */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 gap-6">
           {/* Goals */}
           <div className="bg-purple-200 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -439,42 +475,6 @@ export default function Dashboard() {
                     <div className="bg-white rounded-full h-2" style={{ width: `${item.percent}%` }}></div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Transfer */}
-          <div className="bg-gray-900 rounded-2xl p-6 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Quick Transfer</h3>
-              <button 
-                onClick={() => setShowTransferModal(true)}
-                className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
-              >
-                Transfer Now →
-              </button>
-            </div>
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setShowTransferModal(true)}
-                className="text-center hover:opacity-80 transition-opacity"
-              >
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-2">
-                  <span className="text-2xl">➕</span>
-                </div>
-                <p className="text-xs">Add New</p>
-              </button>
-              {["MP", "LS", "OW", "KP"].map((initials, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => setShowTransferModal(true)}
-                  className="text-center hover:opacity-80 transition-opacity"
-                >
-                  <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full flex items-center justify-center mb-2 text-white font-semibold">
-                    {initials}
-                  </div>
-                  <p className="text-xs">{["Maria", "Leonard", "Oscar", "Karen"][i]}</p>
-                </button>
               ))}
             </div>
           </div>
