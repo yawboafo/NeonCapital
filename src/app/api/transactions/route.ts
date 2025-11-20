@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const result = await db.collection('transactions').insertOne(newTransaction);
 
     // Update account balance
-    const balanceChange = type === 'Income' ? parseFloat(amount) : -parseFloat(amount);
+    const balanceChange = (type.toLowerCase() === 'income') ? parseFloat(amount) : -parseFloat(amount);
     await db.collection('accounts').updateOne(
       { _id: new ObjectId(accountId) },
       { $inc: { balance: balanceChange } }

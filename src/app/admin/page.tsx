@@ -1170,10 +1170,22 @@ function TransactionManagement() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Get the userId from the selected account
+      const selectedAccount = accounts.find(acc => acc._id === formData.accountId);
+      if (!selectedAccount) {
+        alert('Please select a valid account');
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, amount: parseFloat(formData.amount) }),
+        body: JSON.stringify({ 
+          ...formData, 
+          userId: selectedAccount.userId,
+          amount: parseFloat(formData.amount) 
+        }),
       });
       const data = await response.json();
       if (data.success) {
@@ -1181,9 +1193,13 @@ function TransactionManagement() {
         setShowCreateForm(false);
         fetchTransactions();
         fetchAccounts(); // Refresh to update balances
+        alert('Transaction added successfully!');
+      } else {
+        alert(`Error: ${data.error || 'Failed to add transaction'}`);
       }
     } catch (error) {
       console.error("Error creating transaction:", error);
+      alert('Failed to add transaction. Please try again.');
     } finally {
       setLoading(false);
     }
