@@ -98,7 +98,7 @@ export default function Transfer() {
               <h3 className="text-lg font-semibold mb-4">Checking Account</h3>
               <div className="mb-2">
                 <p className="text-sm text-gray-400">Balance</p>
-                <p className="text-3xl font-bold">USD 10,000.00</p>
+                <p className="text-3xl font-bold">£10,000.00</p>
               </div>
               <div className="border-t border-gray-700 pt-4 mt-4">
                 <p className="text-sm text-gray-400 mb-1">IBAN</p>
@@ -188,7 +188,7 @@ export default function Transfer() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
                 <input
                   type="text"
-                  placeholder="USD 0.00"
+                  placeholder="£0.00"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

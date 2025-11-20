@@ -112,15 +112,15 @@ export default function Dashboard() {
               <h3 className="text-sm font-medium text-gray-700">Total Balance</h3>
               <span className="text-cyan-600 text-sm">📈 2.36%</span>
             </div>
-            <p className="text-4xl font-bold text-gray-900 mb-4">USD 10,000.00</p>
+            <p className="text-4xl font-bold text-gray-900 mb-4">£10,000.00</p>
             <div className="flex gap-8 text-sm">
               <div>
                 <p className="text-gray-600 mb-1">▲ Income</p>
-                <p className="font-semibold text-gray-900">USD 30,000.00</p>
+                <p className="font-semibold text-gray-900">£30,000.00</p>
               </div>
               <div>
                 <p className="text-gray-600 mb-1">▼ Expenses</p>
-                <p className="font-semibold text-gray-900">USD 20,000.00</p>
+                <p className="font-semibold text-gray-900">£20,000.00</p>
               </div>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function Dashboard() {
               <h3 className="text-sm font-medium text-gray-700">Total Savings</h3>
               <span className="text-cyan-600 text-sm">📈 2.36%</span>
             </div>
-            <p className="text-4xl font-bold text-gray-900 mb-4">USD 5,000.00</p>
+              <p className="text-4xl font-bold text-gray-900 mb-4">£5,000.00</p>
             <div className="flex gap-1 items-end h-16">
               {[30, 40, 35, 45, 50, 60, 55, 70, 65, 75, 80, 90].map((height, i) => (
                 <div key={i} className="flex-1 bg-blue-300 rounded-t" style={{ height: `${height}%` }}></div>
@@ -195,7 +195,7 @@ export default function Dashboard() {
                       style={{ height: `${day.expenses}%` }}
                     >
                       <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        ${(day.expenses * 30).toFixed(0)}
+                        £{(day.expenses * 30).toFixed(0)}
                       </div>
                     </div>
                     <div 
@@ -203,7 +203,7 @@ export default function Dashboard() {
                       style={{ height: `${day.income}%` }}
                     >
                       <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        ${(day.income * 30).toFixed(0)}
+                        £{(day.income * 30).toFixed(0)}
                       </div>
                     </div>
                   </div>
@@ -242,11 +242,11 @@ export default function Dashboard() {
             </div>
             <div className="space-y-4">
               {[
-                { name: "Central Burger", category: "Cafe and Restaurant", amount: "-$189.36", color: "bg-purple-200" },
-                { name: "The Market", category: "Groceries", amount: "-$92.50", color: "bg-blue-200" },
-                { name: "Quick Transfer", category: "Maria Purple", amount: "+$350.00", color: "bg-orange-200", positive: true },
-                { name: "The Market", category: "Groceries", amount: "-$36.20", color: "bg-purple-200" },
-                { name: "Central Burger", category: "Cafe and Restaurant", amount: "-$189.36", color: "bg-blue-200" },
+                { name: "Central Burger", category: "Cafe and Restaurant", amount: "-£189.36", color: "bg-purple-200" },
+                { name: "The Market", category: "Groceries", amount: "-£92.50", color: "bg-blue-200" },
+                { name: "Quick Transfer", category: "Maria Purple", amount: "+£350.00", color: "bg-orange-200", positive: true },
+                { name: "The Market", category: "Groceries", amount: "-£36.20", color: "bg-purple-200" },
+                { name: "Central Burger", category: "Cafe and Restaurant", amount: "-£189.36", color: "bg-blue-200" },
               ].map((transaction, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

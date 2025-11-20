@@ -86,7 +86,7 @@ export default function Accounts() {
               </div>
               <div className="mb-6">
                 <p className="text-sm text-gray-400 mb-1">Available balance</p>
-                <p className="text-3xl font-bold">USD 10,000.00</p>
+                <p className="text-3xl font-bold">£10,000.00</p>
               </div>
               <div className="border-t border-gray-700 pt-4 space-y-2">
                 <div>
@@ -111,7 +111,7 @@ export default function Accounts() {
               </div>
               <div className="mb-6">
                 <p className="text-sm text-gray-400 mb-1">Available balance</p>
-                <p className="text-3xl font-bold">USD 8,000.00</p>
+                <p className="text-3xl font-bold">£8,000.00</p>
               </div>
               <div className="border-t border-gray-700 pt-4 space-y-2">
                 <div>
@@ -136,7 +136,7 @@ export default function Accounts() {
               </div>
               <div className="mb-6">
                 <p className="text-sm text-gray-400 mb-1">Available balance</p>
-                <p className="text-3xl font-bold">USD 2,000.00</p>
+                <p className="text-3xl font-bold">£2,000.00</p>
               </div>
               <div className="border-t border-gray-700 pt-4 space-y-2">
                 <div>
@@ -167,7 +167,7 @@ export default function Accounts() {
                   <div className="text-2xl">💳</div>
                 </div>
                 <p className="text-sm mb-2">Available Balance</p>
-                <p className="text-2xl font-bold mb-8">USD 10,000.00</p>
+                <p className="text-2xl font-bold mb-8">£10,000.00</p>
                 <div className="space-y-1">
                   <p className="text-sm">1111 0000 1100 0000</p>
                   <div className="flex justify-between">
@@ -221,7 +221,7 @@ export default function Accounts() {
                   <div className="text-2xl">💳</div>
                 </div>
                 <p className="text-sm mb-2">Available Balance</p>
-                <p className="text-2xl font-bold mb-8">USD 8,500.00</p>
+                <p className="text-2xl font-bold mb-8">£8,500.00</p>
                 <div className="space-y-1">
                   <p className="text-sm">1111 **** **** 0000</p>
                   <div className="flex justify-between">

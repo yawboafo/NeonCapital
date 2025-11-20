@@ -85,7 +85,7 @@ export default function Investments() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total invested</p>
-                <p className="text-2xl font-bold text-gray-900">$10,000.00</p>
+                <p className="text-2xl font-bold text-gray-900">£10,000.00</p>
               </div>
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function Investments() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">$200.00</p>
+                  <p className="font-semibold text-gray-900">£200.00</p>
                   <p className="text-sm text-gray-500">Investment value</p>
                   <p className="text-sm text-red-600 font-semibold">-23%</p>
                   <p className="text-xs text-gray-500">Return value</p>
@@ -197,7 +197,7 @@ export default function Investments() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">$200.00</p>
+                  <p className="font-semibold text-gray-900">£200.00</p>
                   <p className="text-sm text-gray-500">Investment value</p>
                   <p className="text-sm text-gray-600 font-semibold">0%</p>
                   <p className="text-xs text-gray-500">Return value</p>
@@ -221,22 +221,22 @@ export default function Investments() {
                 <tbody>
                   <tr className="border-b border-gray-800">
                     <td className="py-3">Coinspace</td>
-                    <td className="text-right py-3">$100</td>
+                    <td className="text-right py-3">£100</td>
                     <td className="text-right py-3 text-green-400">+10%</td>
                   </tr>
                   <tr className="border-b border-gray-800">
                     <td className="py-3">DocSign</td>
-                    <td className="text-right py-3">$100</td>
+                    <td className="text-right py-3">£100</td>
                     <td className="text-right py-3 text-red-400">-8%</td>
                   </tr>
                   <tr className="border-b border-gray-800">
                     <td className="py-3">Target & Co.</td>
-                    <td className="text-right py-3">$100</td>
+                    <td className="text-right py-3">£100</td>
                     <td className="text-right py-3 text-green-400">+10%</td>
                   </tr>
                   <tr className="border-b border-gray-800">
                     <td className="py-3">MNL Bank</td>
-                    <td className="text-right py-3">$100</td>
+                    <td className="text-right py-3">£100</td>
                     <td className="text-right py-3 text-green-400">+12%</td>
                   </tr>
                 </tbody>
