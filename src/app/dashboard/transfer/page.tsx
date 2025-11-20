@@ -95,11 +95,12 @@ export default function Transfer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user._id,
+          accountId: selectedAccount,
           fromAccount: accountDetails.accountName,
           toAccount: formData.recipientName || formData.recipientIban,
           amount: transferAmount,
           date: formData.date,
-          status: formData.status,
+          status: 'Completed',
           recipientName: formData.recipientName,
           recipientEmail: formData.recipientEmail,
           recipientIban: formData.recipientIban,
@@ -128,7 +129,7 @@ export default function Transfer() {
           status: "Pending"
         });
         
-        alert('Transfer completed successfully!');
+        alert(`Transfer completed successfully! New balance: ${formatCurrency(data.newBalance, accountDetails.currency)}`);
       } else {
         alert(data.error || 'Transfer failed');
       }
