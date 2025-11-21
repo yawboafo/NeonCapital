@@ -45,26 +45,6 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-blue-400">
-      {/* Header */}
-      <header className="bg-blue-900/90 backdrop-blur-sm shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
-            <Image src="/bank-logo.svg" alt="Neon Capital Logo" width={40} height={40} />
-            <span className="text-white font-bold text-xl">Neon Capital</span>
-          </Link>
-          <nav className="hidden md:flex gap-6">
-            <Link href="/" className="text-white hover:text-blue-200 transition">Home</Link>
-            <Link href="/about" className="text-white hover:text-blue-200 transition">About</Link>
-            <Link href="/products" className="text-white hover:text-blue-200 transition">Products</Link>
-            <Link href="/promotions" className="text-white hover:text-blue-200 transition">Promotions</Link>
-            <Link href="/contact" className="text-blue-200 font-semibold">Contact</Link>
-          </nav>
-          <Link href="/login" className="bg-white text-blue-900 px-6 py-2 rounded-lg font-semibold hover:bg-blue-50 transition">
-            Login
-          </Link>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-900 via-blue-700 to-blue-400 py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
