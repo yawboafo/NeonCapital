@@ -281,7 +281,7 @@ export default function Home() {
             <Image src="/bank-logo.svg" alt="Neon Capital Logo" width={32} height={32} />
             <span className="font-bold text-base md:text-lg">Neon Capital</span>
           </div>
-          <div className="text-xs sm:text-sm">contact@neoncapital.com | 85 King William St, London EC4N 7BL</div>
+          <div className="text-xs sm:text-sm">info@neonbankcapital.com | +447476937605 | 85 King William St, London EC4N 7BL</div>
           <div className="text-xs sm:text-sm">© 2025 Neon Capital. All Rights Reserved.</div>
         </div>
       </footer>

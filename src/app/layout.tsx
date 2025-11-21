@@ -38,7 +38,7 @@ export default function RootLayout({
                 <a href="/products" className="hover:text-blue-700 transition">Products</a>
                 <a href="/promotions" className="hover:text-blue-700 transition">Promotions</a>
                 <a href="/about" className="hover:text-blue-700 transition">About</a>
-                <a href="/education" className="hover:text-blue-700 transition">Education</a>
+                <a href="/contact" className="hover:text-blue-700 transition">Contact</a>
               </nav>
               <div className="flex gap-2">
                 <a href="/login" className="px-6 py-2 rounded-full bg-blue-700 text-white font-bold shadow hover:bg-blue-800 transition">LOGIN</a>
