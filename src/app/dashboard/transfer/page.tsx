@@ -249,30 +249,30 @@ export default function Transfer() {
 
             {/* Account Card */}
             {getSelectedAccountDetails() && (
-              <div className="bg-gray-900 text-white rounded-2xl p-6 mb-6">
-                <h3 className="text-lg font-semibold mb-4">{getSelectedAccountDetails()?.accountName}</h3>
+              <div className="bg-white rounded-2xl p-6 mb-6 shadow-md border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{getSelectedAccountDetails()?.accountName}</h3>
                 <div className="mb-2">
-                  <p className="text-sm text-gray-400">Balance</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-sm text-gray-600">Balance</p>
+                  <p className="text-3xl font-bold text-gray-900">
                     {formatCurrency(getSelectedAccountDetails()?.balance, getSelectedAccountDetails()?.currency)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">{getSelectedAccountDetails()?.accountType}</p>
+                  <p className="text-xs text-gray-500 mt-1">{getSelectedAccountDetails()?.accountType}</p>
                 </div>
-                <div className="border-t border-gray-700 pt-4 mt-4">
+                <div className="border-t border-gray-200 pt-4 mt-4">
                   {getSelectedAccountDetails()?.iban && (
                     <>
-                      <p className="text-sm text-gray-400 mb-1">IBAN</p>
-                      <p className="font-medium">{getSelectedAccountDetails()?.iban}</p>
+                      <p className="text-sm text-gray-600 mb-1">IBAN</p>
+                      <p className="font-medium text-gray-900">{getSelectedAccountDetails()?.iban}</p>
                     </>
                   )}
                   {getSelectedAccountDetails()?.accountNumber && (
                     <>
-                      <p className="text-sm text-gray-400 mt-3 mb-1">Account Number</p>
-                      <p className="font-medium">{getSelectedAccountDetails()?.accountNumber}</p>
+                      <p className="text-sm text-gray-600 mt-3 mb-1">Account Number</p>
+                      <p className="font-medium text-gray-900">{getSelectedAccountDetails()?.accountNumber}</p>
                     </>
                   )}
-                  <p className="text-sm text-gray-400 mt-3 mb-1">Account owner</p>
-                  <p className="font-medium">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-sm text-gray-600 mt-3 mb-1">Account owner</p>
+                  <p className="font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
                 </div>
               </div>
             )}
@@ -290,7 +290,7 @@ export default function Transfer() {
                   }
                 }}
                 disabled={!getSelectedAccountDetails()?.iban}
-                className="w-full py-3 bg-purple-200 text-gray-900 rounded-lg font-medium hover:bg-purple-300 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-200"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -299,7 +299,7 @@ export default function Transfer() {
               </button>
               <button 
                 onClick={() => alert('Payment request feature coming soon!')}
-                className="w-full py-3 bg-orange-200 text-gray-900 rounded-lg font-medium hover:bg-orange-300 transition flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition flex items-center justify-center gap-2 border border-gray-300"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -317,16 +317,16 @@ export default function Transfer() {
             <div className="flex gap-2 mb-6">
               <button
                 onClick={() => setTransferType("own")}
-                className={`px-6 py-2 rounded-lg font-medium ${
-                  transferType === "own" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"
+                className={`px-6 py-2 rounded-lg font-medium transition ${
+                  transferType === "own" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 Own account
               </button>
               <button
                 onClick={() => setTransferType("other")}
-                className={`px-6 py-2 rounded-lg font-medium ${
-                  transferType === "other" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600"
+                className={`px-6 py-2 rounded-lg font-medium transition ${
+                  transferType === "other" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 Other account
@@ -425,7 +425,7 @@ export default function Transfer() {
               <button 
                 type="submit"
                 disabled={loading || accounts.length === 0}
-                className="w-full py-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition mt-6 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
               >
                 {loading ? 'Processing...' : 'Complete Transfer'}
               </button>
