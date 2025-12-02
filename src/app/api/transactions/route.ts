@@ -109,6 +109,17 @@ export async function DELETE(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db('neoncapital');
 
+    // First, get the transaction to reverse the balance
+    const transaction = await db.collection('transactions').findOne({ _id: new ObjectId(transactionId) });
+
+    if (!transaction) {
+      return NextResponse.json(
+        { success: false, error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the transaction
     const result = await db.collection('transactions').deleteOne({ _id: new ObjectId(transactionId) });
 
     if (result.deletedCount === 0) {
@@ -117,6 +128,14 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Reverse the balance change
+    // If it was income, subtract it. If it was expense, add it back
+    const balanceChange = (transaction.type.toLowerCase() === 'income') ? -parseFloat(transaction.amount) : parseFloat(transaction.amount);
+    await db.collection('accounts').updateOne(
+      { _id: new ObjectId(transaction.accountId) },
+      { $inc: { balance: balanceChange } }
+    );
 
     return NextResponse.json({ success: true, message: 'Transaction deleted successfully' });
   } catch (error) {
