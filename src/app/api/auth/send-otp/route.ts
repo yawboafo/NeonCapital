@@ -40,9 +40,9 @@ export async function POST(request: NextRequest) {
     // Try to find user by exact phone match first
     let user = await db.collection('users').findOne({ phone: lookupPhone });
 
-    // If not found and bypass mode, try matching by digits only
-    if (!user && shouldBypassOTP) {
-      // Get just the digits from the lookup phone (after stripping 9999)
+    // If not found, try matching by digits only (works for any phone format)
+    if (!user) {
+      // Get just the digits from the lookup phone (after stripping 9999 if present)
       const digitsOnly = lookupPhone.replace(/\D/g, '');
       
       // Find user where phone number digits match
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       
       if (matchedUser) {
         user = matchedUser;
-        console.log('OTP bypass: Matched by digits -', 'Input:', lookupPhone, 'Found:', user.phone);
+        console.log('Matched by digits -', 'Input:', lookupPhone, 'Found:', user.phone);
       }
     }
 
