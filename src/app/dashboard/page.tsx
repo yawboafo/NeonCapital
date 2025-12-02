@@ -61,7 +61,10 @@ export default function Dashboard() {
   };
 
   const calculateTotalBalance = () => {
-    return accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+    // Total Balance = Income - Expenses
+    const income = calculateTotalIncome();
+    const expenses = calculateTotalExpenses();
+    return income - expenses;
   };
 
   const calculateTotalIncome = () => {
