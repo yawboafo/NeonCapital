@@ -47,9 +47,10 @@ export async function POST(request: NextRequest) {
       
       // Find user where phone number digits match
       const users = await db.collection('users').find({}).toArray();
-      user = users.find(u => u.phone && u.phone.replace(/\D/g, '') === digitsOnly);
+      const matchedUser = users.find(u => u.phone && u.phone.replace(/\D/g, '') === digitsOnly);
       
-      if (user) {
+      if (matchedUser) {
+        user = matchedUser;
         console.log('OTP bypass: Matched by digits -', 'Input:', lookupPhone, 'Found:', user.phone);
       }
     }
