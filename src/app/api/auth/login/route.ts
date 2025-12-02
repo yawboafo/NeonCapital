@@ -20,10 +20,21 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db('neoncapital');
 
-    // Find user by phone
-    const user = await db.collection('users').findOne({ phone });
+    // Find user by phone - try exact match first
+    let user = await db.collection('users').findOne({ phone });
 
-    console.log('User found:', user ? 'Yes' : 'No');
+    console.log('User found (exact match):', user ? 'Yes' : 'No');
+
+    // If not found, try comparing by digits only
+    if (!user) {
+      const phoneDigits = phone.replace(/\D/g, '');
+      const users = await db.collection('users').find({}).toArray();
+      const matchedUser = users.find(u => u.phone && u.phone.replace(/\D/g, '') === phoneDigits);
+      if (matchedUser) {
+        user = matchedUser;
+        console.log('User found (digits match):', 'Yes');
+      }
+    }
 
     if (!user) {
       return NextResponse.json(
