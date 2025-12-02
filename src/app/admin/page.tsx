@@ -1120,6 +1120,7 @@ function TransactionManagement() {
     merchantName: "",
     amount: "",
     description: "",
+    date: new Date().toISOString().split('T')[0],
   });
 
   useEffect(() => {
@@ -1189,7 +1190,7 @@ function TransactionManagement() {
       });
       const data = await response.json();
       if (data.success) {
-        setFormData({ accountId: "", type: "expense", category: "Groceries", merchantName: "", amount: "", description: "" });
+        setFormData({ accountId: "", type: "expense", category: "Groceries", merchantName: "", amount: "", description: "", date: new Date().toISOString().split('T')[0] });
         setShowCreateForm(false);
         fetchTransactions();
         fetchAccounts(); // Refresh to update balances
@@ -1286,6 +1287,10 @@ function TransactionManagement() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
                 <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="0.00" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Date</label>
+                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>

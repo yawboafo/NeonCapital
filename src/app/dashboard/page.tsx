@@ -556,6 +556,7 @@ export default function Dashboard() {
                               {transaction.merchantName || transaction.description}
                             </p>
                             <p className="text-xs text-gray-500">{transaction.category}</p>
+                            <p className="text-xs text-gray-400">{new Date(transaction.date || transaction.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                           </div>
                         </div>
                         <span className={`font-semibold text-sm ${transaction.type === 'income' ? "text-green-600" : "text-gray-900"}`}>
