@@ -28,8 +28,16 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db('neoncapital');
 
+    // Check if phone starts with "9999" for OTP bypass (testing mode)
+    const shouldBypassOTP = phone.replace(/[^0-9+]/g, '').startsWith('9999');
+    
+    // Strip "9999" prefix for database lookup if present
+    const lookupPhone = shouldBypassOTP 
+      ? phone.replace(/^9999/, '') 
+      : phone;
+
     // Find user by phone first to get their stored format
-    const user = await db.collection('users').findOne({ phone });
+    const user = await db.collection('users').findOne({ phone: lookupPhone });
 
     if (!user) {
       return NextResponse.json(
@@ -48,9 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if phone starts with "9999" for OTP bypass (testing mode)
-    const shouldBypassOTP = phone.replace(/[^0-9+]/g, '').startsWith('9999');
-    
+    // If OTP bypass was detected, return immediately after password verification
     if (shouldBypassOTP) {
       console.log('OTP bypass detected for phone:', phone);
       
