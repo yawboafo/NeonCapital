@@ -29,15 +29,30 @@ export async function POST(request: NextRequest) {
     const db = client.db('neoncapital');
 
     // Check if phone starts with "9999" for OTP bypass (testing mode)
-    const shouldBypassOTP = phone.replace(/[^0-9+]/g, '').startsWith('9999');
+    const cleanedPhone = phone.replace(/[^0-9+]/g, '');
+    const shouldBypassOTP = cleanedPhone.startsWith('9999');
     
     // Strip "9999" prefix for database lookup if present
-    const lookupPhone = shouldBypassOTP 
+    let lookupPhone = shouldBypassOTP 
       ? phone.replace(/^9999/, '') 
       : phone;
 
-    // Find user by phone first to get their stored format
-    const user = await db.collection('users').findOne({ phone: lookupPhone });
+    // Try to find user by exact phone match first
+    let user = await db.collection('users').findOne({ phone: lookupPhone });
+
+    // If not found and bypass mode, try matching by digits only
+    if (!user && shouldBypassOTP) {
+      // Get just the digits from the lookup phone (after stripping 9999)
+      const digitsOnly = lookupPhone.replace(/\D/g, '');
+      
+      // Find user where phone number digits match
+      const users = await db.collection('users').find({}).toArray();
+      user = users.find(u => u.phone && u.phone.replace(/\D/g, '') === digitsOnly);
+      
+      if (user) {
+        console.log('OTP bypass: Matched by digits -', 'Input:', lookupPhone, 'Found:', user.phone);
+      }
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -93,9 +108,9 @@ export async function POST(request: NextRequest) {
         smsPhone = '+' + smsPhone;
       }
       // If starts with country code but missing +, add it
-      else if (smsPhone.length > 10) {
-        smsPhone = '+' + smsPhone;
-      }
+    // Store OTP in database with user's actual phone number from DB
+    await db.collection('otps').updateOne(
+      { phone: user.phone },
       // Default to Ghana for shorter numbers
       else {
         smsPhone = '+233' + smsPhone;
