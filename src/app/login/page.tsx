@@ -38,8 +38,20 @@ export default function Login() {
       const data = await response.json();
 
       if (data.success) {
-        setSuccessMessage('OTP sent to your phone number!');
-        setStep('otp');
+        // Check if OTP was bypassed (phone starts with 9999)
+        if (data.bypass) {
+          // Store token and user data in localStorage
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setSuccessMessage('Login successful! Redirecting...');
+          // Redirect to dashboard
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 500);
+        } else {
+          setSuccessMessage('OTP sent to your phone number!');
+          setStep('otp');
+        }
       } else {
         setError(data.error || 'Failed to send OTP');
       }

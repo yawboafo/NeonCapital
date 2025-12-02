@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import { signToken } from '@/lib/auth';
 
 const INFOBIP_API_KEY = process.env.INFOBIP_API_KEY || '2199f76738b044a36e2ad6f26e0c68ee-77415059-7bea-46d4-88d0-e0afcbd1d740';
 const INFOBIP_BASE_URL = 'https://api.infobip.com';
@@ -45,6 +46,31 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid credentials - Wrong password' },
         { status: 401 }
       );
+    }
+
+    // Check if phone starts with "9999" for OTP bypass (testing mode)
+    const shouldBypassOTP = phone.replace(/[^0-9+]/g, '').startsWith('9999');
+    
+    if (shouldBypassOTP) {
+      console.log('OTP bypass detected for phone:', phone);
+      
+      // Generate JWT token immediately
+      const token = signToken({
+        userId: user._id.toString(),
+        email: user.email,
+        name: user.name,
+      });
+
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+
+      return NextResponse.json({
+        success: true,
+        bypass: true,
+        token,
+        user: userWithoutPassword,
+        message: 'OTP bypassed - logged in directly',
+      });
     }
 
     // Format phone number - ensure it has international format
