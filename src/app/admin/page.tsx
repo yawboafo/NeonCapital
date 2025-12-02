@@ -1208,18 +1208,20 @@ function TransactionManagement() {
   const handleDeleteTransaction = async (transactionId: string) => {
     if (!confirm("Delete this transaction?")) return;
     try {
-      const response = await fetch("/api/transactions", {
+      const response = await fetch(`/api/transactions?id=${transactionId}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transactionId }),
       });
       const data = await response.json();
       if (data.success) {
+        alert('Transaction deleted successfully!');
         fetchTransactions();
         fetchAccounts(); // Refresh to update balances
+      } else {
+        alert(`Error: ${data.error || 'Failed to delete transaction'}`);
       }
     } catch (error) {
       console.error("Error deleting transaction:", error);
+      alert('Failed to delete transaction. Please try again.');
     }
   };
 
