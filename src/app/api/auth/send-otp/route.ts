@@ -108,9 +108,9 @@ export async function POST(request: NextRequest) {
         smsPhone = '+' + smsPhone;
       }
       // If starts with country code but missing +, add it
-    // Store OTP in database with user's actual phone number from DB
-    await db.collection('otps').updateOne(
-      { phone: user.phone },
+      else if (smsPhone.length > 10) {
+        smsPhone = '+' + smsPhone;
+      }
       // Default to Ghana for shorter numbers
       else {
         smsPhone = '+233' + smsPhone;
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-    // Store OTP in database with user's original phone number
+    // Store OTP in database with user's actual phone number from DB
     await db.collection('otps').updateOne(
       { phone: user.phone },
       {
