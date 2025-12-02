@@ -97,7 +97,11 @@ export default function Dashboard() {
 
   const getRecentTransactions = () => {
     return transactions
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort((a, b) => {
+        const dateA = new Date(a.date || a.createdAt).getTime();
+        const dateB = new Date(b.date || b.createdAt).getTime();
+        return dateB - dateA;
+      })
       .slice(0, 5);
   };
 
