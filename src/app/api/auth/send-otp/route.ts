@@ -96,26 +96,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Format phone number - ensure it has international format
-    let smsPhone = user.phone;
+    // First, get only the digits from user.phone
+    const phoneDigits = user.phone.replace(/\D/g, '');
+    let smsPhone = '';
     
-    // If phone doesn't start with +, try to add appropriate country code
-    if (!smsPhone.startsWith('+')) {
-      // If starts with 0, assume Ghana and convert
-      if (smsPhone.startsWith('0')) {
-        smsPhone = '+233' + smsPhone.substring(1);
-      } 
-      // If starts with 1 and is 10 digits, assume USA/Canada
-      else if (smsPhone.startsWith('1') && smsPhone.length === 11) {
-        smsPhone = '+' + smsPhone;
-      }
-      // If starts with country code but missing +, add it
-      else if (smsPhone.length > 10) {
-        smsPhone = '+' + smsPhone;
-      }
-      // Default to Ghana for shorter numbers
-      else {
-        smsPhone = '+233' + smsPhone;
-      }
+    // If starts with 0, assume Ghana and convert
+    if (phoneDigits.startsWith('0')) {
+      smsPhone = '+233' + phoneDigits.substring(1);
+    } 
+    // If starts with 1 and is 11 digits, assume USA/Canada
+    else if (phoneDigits.startsWith('1') && phoneDigits.length === 11) {
+      smsPhone = '+' + phoneDigits;
+    }
+    // If 10 digits, assume USA/Canada (missing 1 prefix)
+    else if (phoneDigits.length === 10) {
+      smsPhone = '+1' + phoneDigits;
+    }
+    // If starts with country code, add +
+    else if (phoneDigits.length > 10) {
+      smsPhone = '+' + phoneDigits;
+    }
+    // Default to Ghana for shorter numbers
+    else {
+      smsPhone = '+233' + phoneDigits;
     }
 
     console.log('Original phone:', user.phone, 'SMS phone:', smsPhone);
