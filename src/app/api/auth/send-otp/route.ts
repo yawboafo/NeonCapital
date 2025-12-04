@@ -202,6 +202,14 @@ export async function POST(request: NextRequest) {
     // Send Email if user has email
     if (user.email) {
       try {
+        console.log('Attempting to send email to:', user.email);
+        console.log('SMTP Config:', {
+          host: process.env.SMTP_HOST,
+          port: process.env.SMTP_PORT,
+          user: process.env.SMTP_USER,
+          hasPassword: !!process.env.SMTP_PASS
+        });
+        
         const userName = user.firstName || user.name?.split(' ')[0] || 'Valued Customer';
         
         await emailTransporter.sendMail({
