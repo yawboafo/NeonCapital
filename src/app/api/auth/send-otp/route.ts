@@ -2,9 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
+import nodemailer from 'nodemailer';
 
 const INFOBIP_API_KEY = process.env.INFOBIP_API_KEY || '2199f76738b044a36e2ad6f26e0c68ee-77415059-7bea-46d4-88d0-e0afcbd1d740';
 const INFOBIP_BASE_URL = 'https://api.infobip.com';
+
+// Email transporter configuration
+const emailTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.hostinger.com',
+  port: parseInt(process.env.SMTP_PORT || '465'),
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER || 'info@neonbankcapital.com',
+    pass: process.env.SMTP_PASS || 'Infosonkay@20',
+  },
+});
 
 // Generate a 6-digit OTP
 function generateOTP(): string {
@@ -142,7 +154,15 @@ export async function POST(request: NextRequest) {
       { upsert: true }
     );
 
-    // Send SMS via Infobip with formatted international number
+    // Send OTP via both SMS and Email
+    const deliveryResults = {
+      sms: false,
+      email: false,
+      smsError: null as string | null,
+      emailError: null as string | null,
+    };
+
+    // Send SMS via Infobip
     try {
       const infobipResponse = await fetch(`${INFOBIP_BASE_URL}/sms/2/text/advanced`, {
         method: 'POST',
@@ -163,27 +183,78 @@ export async function POST(request: NextRequest) {
       });
 
       const infobipData = await infobipResponse.json();
-      console.log('Infobip response:', infobipData);
+      console.log('Infobip SMS response:', infobipData);
 
-      if (!infobipResponse.ok) {
+      if (infobipResponse.ok) {
+        deliveryResults.sms = true;
+      } else {
+        deliveryResults.smsError = 'SMS delivery failed';
         console.error('Infobip error:', infobipData);
-        return NextResponse.json(
-          { success: false, error: 'Failed to send OTP' },
-          { status: 500 }
-        );
       }
-
-      return NextResponse.json({
-        success: true,
-        message: 'OTP sent successfully',
-      });
     } catch (smsError) {
+      deliveryResults.smsError = 'SMS sending error';
       console.error('SMS sending error:', smsError);
+    }
+
+    // Send Email if user has email
+    if (user.email) {
+      try {
+        await emailTransporter.sendMail({
+          from: '"Neon Capital" <info@neonbankcapital.com>',
+          to: user.email,
+          subject: 'Your Neon Capital Verification Code',
+          text: `Your verification code is: ${otp}. This code will expire in 10 minutes.`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+              <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h2 style="color: #1e40af; margin-bottom: 20px;">Neon Capital</h2>
+                <h3 style="color: #333; margin-bottom: 20px;">Your Verification Code</h3>
+                <p style="color: #666; font-size: 16px; line-height: 1.5;">Your Neon Capital verification code is:</p>
+                <div style="background-color: #f0f9ff; border: 2px solid #00ff88; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+                  <h1 style="color: #1e40af; letter-spacing: 8px; margin: 0; font-size: 36px;">${otp}</h1>
+                </div>
+                <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in <strong>10 minutes</strong>.</p>
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
+                  <p style="color: #999; font-size: 12px; margin: 0;">⚠️ Never share this code with anyone.</p>
+                  <p style="color: #999; font-size: 12px; margin: 5px 0 0 0;">If you didn't request this code, please ignore this email.</p>
+                </div>
+              </div>
+            </div>
+          `,
+        });
+        
+        deliveryResults.email = true;
+        console.log('Email sent successfully to:', user.email);
+      } catch (emailError) {
+        deliveryResults.emailError = 'Email sending error';
+        console.error('Email sending error:', emailError);
+      }
+    }
+
+    // If both failed, return error
+    if (!deliveryResults.sms && !deliveryResults.email) {
       return NextResponse.json(
-        { success: false, error: 'Failed to send SMS' },
+        { 
+          success: false, 
+          error: 'Failed to send OTP via SMS and Email',
+          details: {
+            smsError: deliveryResults.smsError,
+            emailError: deliveryResults.emailError,
+          }
+        },
         { status: 500 }
       );
     }
+
+    // Return success if at least one delivery method worked
+    return NextResponse.json({
+      success: true,
+      message: 'OTP sent successfully',
+      delivery: {
+        sms: deliveryResults.sms,
+        email: deliveryResults.email,
+      },
+    });
   } catch (error) {
     console.error('Send OTP error:', error);
     return NextResponse.json(

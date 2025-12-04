@@ -49,7 +49,16 @@ export default function Login() {
             router.push('/dashboard');
           }, 500);
         } else {
-          setSuccessMessage('OTP sent to your phone number!');
+          // Show delivery status
+          const deliveryMethods = [];
+          if (data.delivery?.sms) deliveryMethods.push('SMS');
+          if (data.delivery?.email) deliveryMethods.push('Email');
+          
+          const deliveryMsg = deliveryMethods.length > 0 
+            ? `OTP sent via ${deliveryMethods.join(' and ')}!`
+            : 'OTP sent successfully!';
+          
+          setSuccessMessage(deliveryMsg);
           setStep('otp');
         }
       } else {
@@ -106,7 +115,15 @@ export default function Login() {
       const data = await response.json();
 
       if (data.success) {
-        setSuccessMessage('New OTP sent to your phone!');
+        const deliveryMethods = [];
+        if (data.delivery?.sms) deliveryMethods.push('SMS');
+        if (data.delivery?.email) deliveryMethods.push('Email');
+        
+        const deliveryMsg = deliveryMethods.length > 0 
+          ? `New OTP sent via ${deliveryMethods.join(' and ')}!`
+          : 'New OTP sent successfully!';
+        
+        setSuccessMessage(deliveryMsg);
       } else {
         setError(data.error || 'Failed to resend OTP');
       }
@@ -301,7 +318,7 @@ export default function Login() {
                   <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                 </svg>
-                Code sent to {phone}
+                Code sent via SMS and Email
               </p>
             </div>
             <div className="flex gap-3">
