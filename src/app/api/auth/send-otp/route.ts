@@ -207,7 +207,8 @@ export async function POST(request: NextRequest) {
           host: process.env.SMTP_HOST,
           port: process.env.SMTP_PORT,
           user: process.env.SMTP_USER,
-          hasPassword: !!process.env.SMTP_PASS
+          hasPassword: !!process.env.SMTP_PASS,
+          passwordLength: process.env.SMTP_PASS?.length
         });
         
         const userName = user.firstName || user.name?.split(' ')[0] || 'Valued Customer';
