@@ -10,12 +10,15 @@ const INFOBIP_BASE_URL = 'https://api.infobip.com';
 // Email transporter configuration
 const emailTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.hostinger.com',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true,
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false, // true for 465, false for 587
   auth: {
     user: process.env.SMTP_USER || 'info@neonbankcapital.com',
     pass: process.env.SMTP_PASS || 'Infosonkay@20',
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 // Generate a 6-digit OTP
