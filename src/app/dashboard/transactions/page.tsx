@@ -139,8 +139,8 @@ export default function Transactions() {
     if (!accountDetails) return { balance: 0, available: 0, income: 0, expenses: 0 };
 
     const accountTxns = transactions.filter(t => t.accountId === selectedAccount);
-    const income = accountTxns.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    const expenses = accountTxns.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const income = accountTxns.filter(t => t.type === 'income' && t.status !== 'failed').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const expenses = accountTxns.filter(t => t.type === 'expense' && t.status !== 'failed').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
     return {
       balance: accountDetails.balance || 0,
@@ -397,8 +397,14 @@ export default function Transactions() {
                             <p className={`font-semibold ${transaction.type === 'income' ? "text-green-600" : "text-red-600"}`}>
                               {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount, accountDetails?.currency)}
                             </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {transaction.status === 'Completed' ? '✓ Completed' : '⏳ ' + transaction.status}
+                            <p className={`text-xs mt-1 font-medium ${
+                              transaction.status === 'success' ? 'text-green-600' :
+                              transaction.status === 'pending' ? 'text-yellow-600' :
+                              transaction.status === 'failed' ? 'text-red-600' : 'text-gray-400'
+                            }`}>
+                              {transaction.status === 'success' ? 'Success' : 
+                               transaction.status === 'pending' ? 'Pending' : 
+                               transaction.status === 'failed' ? 'Failed' : 'Success'}
                             </p>
                           </div>
                         </div>

@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       date,
       time,
       description,
+      status,
     } = body;
 
     if (!accountId || !userId || !type || !amount) {
@@ -69,17 +70,20 @@ export async function POST(request: NextRequest) {
       date: date || new Date().toISOString().split('T')[0],
       time: time || new Date().toTimeString().split(' ')[0],
       description,
+      status: status || 'success',
       createdAt: new Date(),
     };
 
     const result = await db.collection('transactions').insertOne(newTransaction);
 
-    // Update account balance
-    const balanceChange = (type.toLowerCase() === 'income') ? parseFloat(amount) : -parseFloat(amount);
-    await db.collection('accounts').updateOne(
-      { _id: new ObjectId(accountId) },
-      { $inc: { balance: balanceChange } }
-    );
+    // Update account balance only if transaction is not failed
+    if ((status || 'success') !== 'failed') {
+      const balanceChange = (type.toLowerCase() === 'income') ? parseFloat(amount) : -parseFloat(amount);
+      await db.collection('accounts').updateOne(
+        { _id: new ObjectId(accountId) },
+        { $inc: { balance: balanceChange } }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -89,6 +93,126 @@ export async function POST(request: NextRequest) {
     console.error('Error creating transaction:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create transaction' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const {
+      _id,
+      accountId,
+      userId,
+      type,
+      category,
+      merchantName,
+      amount,
+      date,
+      time,
+      description,
+      status,
+    } = body;
+
+    if (!_id || !accountId || !userId || !type || !amount) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    const client = await clientPromise;
+    const db = client.db('neoncapital');
+
+    // Get the old transaction to calculate balance adjustments
+    const oldTransaction = await db.collection('transactions').findOne({ _id: new ObjectId(_id) });
+
+    if (!oldTransaction) {
+      return NextResponse.json(
+        { success: false, error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
+    // Reverse the old transaction's balance effect (only if it wasn't failed)
+    const oldBalanceChange = (oldTransaction.status !== 'failed') 
+      ? ((oldTransaction.type.toLowerCase() === 'income') 
+        ? -parseFloat(oldTransaction.amount) 
+        : parseFloat(oldTransaction.amount))
+      : 0;
+
+    // Apply the new transaction's balance effect (only if it's not failed)
+    const newBalanceChange = ((status || 'success') !== 'failed')
+      ? ((type.toLowerCase() === 'income') 
+        ? parseFloat(amount) 
+        : -parseFloat(amount))
+      : 0;
+
+    // Net balance change
+    const netBalanceChange = oldBalanceChange + newBalanceChange;
+
+    // Update the transaction
+    const updatedTransaction = {
+      accountId,
+      userId,
+      type,
+      category,
+      merchantName,
+      amount: parseFloat(amount),
+      date: date || new Date().toISOString().split('T')[0],
+      time: time || new Date().toTimeString().split(' ')[0],
+      description,
+      status: status || 'success',
+      updatedAt: new Date(),
+    };
+
+    await db.collection('transactions').updateOne(
+      { _id: new ObjectId(_id) },
+      { $set: updatedTransaction }
+    );
+
+    // Update account balance if there's a net change
+    if (netBalanceChange !== 0) {
+      // If account changed, we need to reverse from old and apply to new
+      if (oldTransaction.accountId !== accountId) {
+        // Reverse old account
+        await db.collection('accounts').updateOne(
+          { _id: new ObjectId(oldTransaction.accountId) },
+          { $inc: { balance: oldBalanceChange } }
+        );
+        // Apply to new account
+        await db.collection('accounts').updateOne(
+          { _id: new ObjectId(accountId) },
+          { $inc: { balance: newBalanceChange } }
+        );
+      } else {
+        // Same account, just apply net change
+        await db.collection('accounts').updateOne(
+          { _id: new ObjectId(accountId) },
+          { $inc: { balance: netBalanceChange } }
+        );
+      }
+    } else if (oldTransaction.accountId !== accountId) {
+      // Account changed but amount/type stayed same
+      await db.collection('accounts').updateOne(
+        { _id: new ObjectId(oldTransaction.accountId) },
+        { $inc: { balance: oldBalanceChange } }
+      );
+      await db.collection('accounts').updateOne(
+        { _id: new ObjectId(accountId) },
+        { $inc: { balance: newBalanceChange } }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      transaction: { ...updatedTransaction, _id },
+    });
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update transaction' },
       { status: 500 }
     );
   }

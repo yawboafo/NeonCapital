@@ -62,6 +62,17 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db('neoncapital');
 
+    // Check if user has warning enabled
+    const user = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+    
+    if (user?.showWarning) {
+      const warningMessage = user.warningMessage || 'Your account is currently on hold pending tax payment. Please contact support to resolve this issue and restore full account access.';
+      return NextResponse.json(
+        { success: false, error: warningMessage, accountOnHold: true },
+        { status: 403 }
+      );
+    }
+
     const transferAmount = parseFloat(amount);
 
     // Get the account to check balance and get details

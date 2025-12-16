@@ -39,6 +39,16 @@ export default function Dashboard() {
 
   const fetchUserData = async (userId: string) => {
     try {
+      // Fetch fresh user data from database
+      const userRes = await fetch(`/api/users?userId=${userId}`);
+      const userData = await userRes.json();
+      if (userData.success && userData.users && userData.users.length > 0) {
+        const freshUser = userData.users[0];
+        setUser(freshUser);
+        // Update localStorage with fresh data
+        localStorage.setItem('user', JSON.stringify(freshUser));
+      }
+
       // Fetch accounts
       const accountsRes = await fetch(`/api/accounts?userId=${userId}`);
       const accountsData = await accountsRes.json();
@@ -76,7 +86,7 @@ export default function Dashboard() {
 
   const calculateTotalExpenses = () => {
     return transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type === 'expense' && t.status !== 'failed')
       .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
   };
 
@@ -115,6 +125,7 @@ export default function Dashboard() {
     const monthlyExpenses = transactions.filter(t => {
       const transactionDate = new Date(t.createdAt);
       return t.type === 'expense' && 
+             t.status !== 'failed' &&
              transactionDate.getMonth() === currentMonth && 
              transactionDate.getFullYear() === currentYear;
     });
@@ -241,9 +252,11 @@ export default function Dashboard() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          userId: user._id,
           accountId: transferForm.accountId,
           recipientName: transferForm.recipientName,
           recipientAccount: transferForm.recipientAccount,
+          recipientIban: transferForm.recipientAccount,
           amount: parseFloat(transferForm.amount),
           description: transferForm.description || 'Quick transfer',
           status: 'Completed',
@@ -407,36 +420,38 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Account Hold Warning */}
-        <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-6 rounded-lg shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-red-800 mb-2">Account on Hold</h3>
-              <p className="text-red-700 mb-3">
-                Your account is currently on hold pending tax payment. Please contact support to resolve this issue and restore full account access.
-              </p>
-              <div className="flex gap-4">
-                <Link 
-                  href="/dashboard/support"
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors inline-block"
-                >
-                  Contact Support
-                </Link>
-                <button 
-                  onClick={() => setShowTaxInfoModal(true)}
-                  className="px-4 py-2 bg-white border border-red-600 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors"
-                >
-                  Learn More
-                </button>
+        {/* Account Hold Warning - Only show if user.showWarning is true */}
+        {user?.showWarning && (
+          <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-6 rounded-lg shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-800 mb-2">Account on Hold</h3>
+                <p className="text-red-700 mb-3">
+                  {user?.warningMessage || 'Your account is currently on hold pending tax payment. Please contact support to resolve this issue and restore full account access.'}
+                </p>
+                <div className="flex gap-4">
+                  <Link 
+                    href="/dashboard/support"
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors inline-block"
+                  >
+                    Contact Support
+                  </Link>
+                  <button 
+                    onClick={() => setShowTaxInfoModal(true)}
+                    className="px-4 py-2 bg-white border border-red-600 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                  >
+                    Learn More
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Balance Cards */}
         <div className="grid grid-cols-2 gap-6 mb-8">
@@ -595,10 +610,21 @@ export default function Dashboard() {
                             <p className="text-xs text-gray-400">{new Date(transaction.date || transaction.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                           </div>
                         </div>
-                        <span className={`font-semibold text-sm ${transaction.type === 'income' ? "text-green-600" : "text-gray-900"}`}>
-                          {transaction.type === 'income' ? '+' : '-'}
-                          {formatCurrency(Math.abs(transaction.amount))}
-                        </span>
+                        <div className="text-right">
+                          <span className={`font-semibold text-sm ${transaction.type === 'income' ? "text-green-600" : "text-gray-900"}`}>
+                            {transaction.type === 'income' ? '+' : '-'}
+                            {formatCurrency(Math.abs(transaction.amount))}
+                          </span>
+                          <p className={`text-xs mt-1 font-medium ${
+                            transaction.status === 'success' ? 'text-green-600' :
+                            transaction.status === 'pending' ? 'text-yellow-600' :
+                            transaction.status === 'failed' ? 'text-red-600' : 'text-green-600'
+                          }`}>
+                            {transaction.status === 'success' ? '✓' : 
+                             transaction.status === 'pending' ? 'Pending' : 
+                             transaction.status === 'failed' ? 'Failed' : '✓'}
+                          </p>
+                        </div>
                       </div>
                     );
                   })

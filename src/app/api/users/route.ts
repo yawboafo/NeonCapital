@@ -3,13 +3,29 @@ import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
 
-// GET - Fetch all users
-export async function GET() {
+// GET - Fetch all users or specific user by userId
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
     const client = await clientPromise;
     const db = client.db('neoncapital');
     
-    const users = await db.collection('users').find({}).project({ password: 0 }).toArray();
+    let users;
+    if (userId && ObjectId.isValid(userId)) {
+      // Fetch specific user
+      users = await db.collection('users')
+        .find({ _id: new ObjectId(userId) })
+        .project({ password: 0 })
+        .toArray();
+    } else {
+      // Fetch all users
+      users = await db.collection('users')
+        .find({})
+        .project({ password: 0 })
+        .toArray();
+    }
     
     return NextResponse.json({ success: true, users });
   } catch (error) {

@@ -442,6 +442,7 @@ function UserManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Warning</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -468,6 +469,62 @@ function UserManagement() {
                       <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                         {user.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/users/${user._id}/toggle-warning`, {
+                                method: 'PATCH',
+                              });
+                              const data = await response.json();
+                              if (data.success) {
+                                fetchUsers();
+                              } else {
+                                alert('Failed to toggle warning');
+                              }
+                            } catch (error) {
+                              console.error('Error toggling warning:', error);
+                              alert('Failed to toggle warning');
+                            }
+                          }}
+                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                            user.showWarning
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {user.showWarning ? 'Warning ON' : 'Warning OFF'}
+                        </button>
+                        {user.showWarning && (
+                          <button
+                            onClick={() => {
+                              const message = prompt('Enter custom warning message:', user.warningMessage || 'Your account is currently on hold pending tax payment. Please contact support to resolve this issue and restore full account access.');
+                              if (message !== null) {
+                                fetch(`/api/users/${user._id}/warning-message`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ message })
+                                }).then(res => res.json()).then(data => {
+                                  if (data.success) {
+                                    fetchUsers();
+                                    alert('Warning message updated!');
+                                  } else {
+                                    alert('Failed to update message');
+                                  }
+                                }).catch(err => {
+                                  console.error(err);
+                                  alert('Failed to update message');
+                                });
+                              }
+                            }}
+                            className="px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded text-xs font-medium whitespace-nowrap"
+                          >
+                            ✏️ Edit Message
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
@@ -1112,6 +1169,8 @@ function TransactionManagement() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     accountId: "",
@@ -1121,6 +1180,7 @@ function TransactionManagement() {
     amount: "",
     description: "",
     date: new Date().toISOString().split('T')[0],
+    status: "success",
   });
 
   useEffect(() => {
@@ -1190,7 +1250,7 @@ function TransactionManagement() {
       });
       const data = await response.json();
       if (data.success) {
-        setFormData({ accountId: "", type: "expense", category: "Groceries", merchantName: "", amount: "", description: "", date: new Date().toISOString().split('T')[0] });
+        setFormData({ accountId: "", type: "expense", category: "Groceries", merchantName: "", amount: "", description: "", date: new Date().toISOString().split('T')[0], status: "success" });
         setShowCreateForm(false);
         fetchTransactions();
         fetchAccounts(); // Refresh to update balances
@@ -1226,18 +1286,180 @@ function TransactionManagement() {
     }
   };
 
+  const handleEditTransaction = (transaction: any) => {
+    setEditingTransaction(transaction);
+    setFormData({
+      accountId: transaction.accountId || '',
+      type: transaction.type || 'expense',
+      category: transaction.category || 'Groceries',
+      merchantName: transaction.merchantName || '',
+      amount: transaction.amount?.toString() || '',
+      description: transaction.description || '',
+      date: transaction.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      status: transaction.status || 'success',
+    });
+    setShowEditForm(true);
+    setShowCreateForm(false);
+  };
+
+  const handleUpdateTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const selectedAccount = accounts.find(acc => acc._id === formData.accountId);
+      if (!selectedAccount) {
+        alert('Please select a valid account');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch("/api/transactions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          _id: editingTransaction._id,
+          ...formData, 
+          userId: selectedAccount.userId,
+          amount: parseFloat(formData.amount) 
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFormData({ accountId: "", type: "expense", category: "Groceries", merchantName: "", amount: "", description: "", date: new Date().toISOString().split('T')[0], status: "success" });
+        setShowEditForm(false);
+        setEditingTransaction(null);
+        fetchTransactions();
+        fetchAccounts();
+        alert('Transaction updated successfully!');
+      } else {
+        alert(`Error: ${data.error || 'Failed to update transaction'}`);
+      }
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      alert('Failed to update transaction. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setShowEditForm(false);
+    setEditingTransaction(null);
+    setFormData({
+      accountId: "",
+      type: "expense",
+      category: "Groceries",
+      merchantName: "",
+      amount: "",
+      description: "",
+      date: new Date().toISOString().split('T')[0],
+      status: "success",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Transaction Management</h2>
           <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => {
+              setShowCreateForm(!showCreateForm);
+              setShowEditForm(false);
+              setEditingTransaction(null);
+              setFormData({
+                accountId: "",
+                type: "expense",
+                category: "Groceries",
+                merchantName: "",
+                amount: "",
+                description: "",
+                date: new Date().toISOString().split('T')[0],
+                status: "success",
+              });
+            }}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             {showCreateForm ? "Cancel" : "+ Add Transaction"}
           </button>
         </div>
+
+        {showEditForm && (
+          <form onSubmit={handleUpdateTransaction} className="bg-blue-50 rounded-lg p-6 mb-6 border-2 border-blue-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Transaction</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Account</label>
+                <select value={formData.accountId} onChange={(e) => setFormData({ ...formData, accountId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="">Select Account</option>
+                  {accounts.map((account) => {
+                    const user = users.find((u) => u._id === account.userId);
+                    const userName = user ? `${user.firstName} ${user.lastName}` : "Unknown";
+                    const balance = Number(account.balance) || 0;
+                    return (
+                      <option key={account._id} value={account._id}>
+                        {userName} - {account.accountName} ({account.currency === "GBP" && "£"}{account.currency === "USD" && "$"}{account.currency === "EUR" && "€"}{balance.toFixed(2)})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Type</label>
+                <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                  <option value="Groceries">Groceries</option>
+                  <option value="Restaurant">Restaurant</option>
+                  <option value="Shopping">Shopping</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Utilities">Utilities</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Merchant Name</label>
+                <input type="text" value={formData.merchantName} onChange={(e) => setFormData({ ...formData, merchantName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Store Name" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="0.00" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Date</label>
+                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="success">Success</option>
+                  <option value="pending">Pending</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Transaction description" />
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button type="submit" disabled={loading} className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50">
+                {loading ? "Updating..." : "Update Transaction"}
+              </button>
+              <button type="button" onClick={cancelEdit} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium">
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
 
         {showCreateForm && (
           <form onSubmit={handleCreateTransaction} className="bg-gray-50 rounded-lg p-6 mb-6">
@@ -1292,6 +1514,14 @@ function TransactionManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Date</label>
                 <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                  <option value="success">Success</option>
+                  <option value="pending">Pending</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Transaction description" />
@@ -1321,6 +1551,7 @@ function TransactionManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -1341,7 +1572,17 @@ function TransactionManagement() {
                         {account?.currency === "GBP" && "£"}{account?.currency === "USD" && "$"}{account?.currency === "EUR" && "€"}
                         {transaction.amount.toFixed(2)}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          transaction.status === "success" ? "bg-green-100 text-green-800" :
+                          transaction.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                          "bg-red-100 text-red-800"
+                        }`}>
+                          {transaction.status || "success"}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onClick={() => handleEditTransaction(transaction)} className="text-blue-600 hover:text-blue-900 mr-4">Edit</button>
                         <button onClick={() => handleDeleteTransaction(transaction._id)} className="text-red-600 hover:text-red-900">Delete</button>
                       </td>
                     </tr>
